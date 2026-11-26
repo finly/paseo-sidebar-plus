@@ -6,6 +6,8 @@
 
 Sidebar+ puts your Paseo projects in groups and subgroups, and shows status, pull requests, checks, diff stats, and services on every workspace row.
 
+https://github.com/user-attachments/assets/a758b9a0-15e9-418c-b2fd-41fc52a142db
+
 - **Remember the branch, but forgot the workspace?** Search by branch, project, label, or host.
 - **Too many projects?** Put them in groups and subgroups with colors and icons.
 - **Collapsed a project?** Its status dot still tells you when a workspace needs input.
