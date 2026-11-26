@@ -571,6 +571,8 @@ export function ViewOptionsHeader({
   onNewGroup,
   search,
   rightInset = 0,
+  collapseByDefault,
+  onCollapseByDefaultChange,
 }: {
   theme: PluginTheme;
   settings: DisplaySettings;
@@ -582,6 +584,9 @@ export function ViewOptionsHeader({
   search: ReactNode;
   /** The list's scrollbar gutter: keeps the header buttons in line with the list's + and ⋯ buttons. */
   rightInset?: number;
+  /** Device-scoped: groups, projects, and sections start collapsed; their expanded ones stay expanded. */
+  collapseByDefault: boolean;
+  onCollapseByDefaultChange(value: boolean): void;
 }) {
   const t = useT();
   const [expandedFilter, setExpandedFilter] = useState<FilterKind | null>(null);
@@ -867,6 +872,13 @@ export function ViewOptionsHeader({
                 label={t("options.showLastActivity")}
                 value={settings.showLastActivity}
                 onChange={(value) => void setOption("showLastActivity", value)}
+                disabled={disabled}
+                theme={theme}
+              />
+              <SwitchRow
+                label={t("options.collapseByDefault")}
+                value={collapseByDefault}
+                onChange={onCollapseByDefaultChange}
                 disabled={disabled}
                 theme={theme}
               />

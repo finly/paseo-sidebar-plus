@@ -24,7 +24,9 @@
   },
   "jump": {
     "label": "Jump to current",
-    "a11y": "Jump to current workspace"
+    "a11y": "Jump to current workspace",
+    "latestLabel": "Jump to latest",
+    "latestA11y": "Jump to latest workspace"
   },
   "time": {
     "now": "now",
@@ -239,7 +241,8 @@
     "default": "Default",
     "large": "Large",
     "compact": "Compact",
-    "roomy": "Roomy"
+    "roomy": "Roomy",
+    "collapseByDefault": "Collapse sections by default"
   },
   "bulkArchive": {
     "title": "Archive workspaces in {{name}}",

@@ -3,7 +3,7 @@ import { Modal } from "@getpaseo/plugin/client/ui";
 import { useEffect, useState } from "react";
 import { Text, View } from "react-native";
 import type { Group } from "../shared/groups";
-import type { useCollapse } from "./collapse";
+import type { CollapseControls } from "./collapse";
 import { Button } from "./group-editor";
 import { useGroups } from "./groups";
 import { useT } from "./i18n";
@@ -35,7 +35,7 @@ export function GroupMenuModal({
   subgroupCount: number;
   projectKeys: readonly string[];
   /** The view's collapse state (in memory while searching or filtered). */
-  collapse: ReturnType<typeof useCollapse>;
+  collapse: CollapseControls;
   onEdit(group: Group): void;
   onNewSubgroup(group: Group): void;
   onMove(group: Group): void;

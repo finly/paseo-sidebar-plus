@@ -2,15 +2,41 @@ import { useSettings } from "@getpaseo/plugin/client";
 import { useCallback, useMemo, useState } from "react";
 import { type CollapseKind, EMPTY_COLLAPSE, collapseSettings } from "../shared/collapse";
 
-/** Device-scoped collapsed groups, projects, status and label sections, and Pinned section, with lookups and toggles. */
+/** Collapse lookups and toggles; the view and the group menu need nothing else. */
+export interface CollapseControls {
+  isCollapsed(kind: CollapseKind, id: string): boolean;
+  toggle(kind: CollapseKind, id: string): Promise<boolean>;
+  /** Collapses or expands every id in `ids` in one save. */
+  setCollapsed(kind: CollapseKind, ids: readonly string[], value: boolean): Promise<boolean>;
+  /** Expands the given groups, projects, sections, and (when `pinned`) the Pinned section in one save. */
+  expand(targets: {
+    groups?: readonly string[];
+    projects?: readonly string[];
+    sections?: readonly string[];
+    pinned?: boolean;
+  }): Promise<boolean>;
+  readonly pinnedCollapsed: boolean;
+  togglePinned(): Promise<boolean>;
+}
+
+/**
+ * Device-scoped collapsed groups, projects, status and label sections, and Pinned section, with lookups and toggles.
+ * The stored lists always hold the ids whose state differs from the default (`collapsedByDefault`), so the default
+ * can flip without rewriting them: an id in the list is collapsed when sections start expanded, and expanded when
+ * they start collapsed.
+ */
 export function useCollapse() {
   const state = useSettings(collapseSettings);
   const values = state.status === "ready" ? state.values : EMPTY_COLLAPSE;
-  const collapsed = useMemo(
+  const collapsedByDefault = values.collapsedByDefault;
+  const flags = useMemo(
     () => ({ groups: new Set(values.groups), projects: new Set(values.projects), sections: new Set(values.sections) }),
     [values],
   );
-  const isCollapsed = useCallback((kind: CollapseKind, id: string) => collapsed[kind].has(id), [collapsed]);
+  const isCollapsed = useCallback(
+    (kind: CollapseKind, id: string) => collapsedByDefault !== flags[kind].has(id),
+    [flags, collapsedByDefault],
+  );
   const toggle = useCallback(
     (kind: CollapseKind, id: string): Promise<boolean> => {
       if (state.status !== "ready") return Promise.resolve(false);
@@ -26,9 +52,11 @@ export function useCollapse() {
       if (state.status !== "ready") return Promise.resolve(false);
       const targets = new Set(ids);
       const rest = state.values[kind].filter((entry) => !targets.has(entry));
-      return state.save({ ...state.values, [kind]: value ? [...rest, ...targets] : rest }, state.revision);
+      // The list holds ids that differ from the default, so a state equal to the default removes them.
+      const next = value !== collapsedByDefault ? [...rest, ...targets] : rest;
+      return state.save({ ...state.values, [kind]: next }, state.revision);
     },
-    [state],
+    [state, collapsedByDefault],
   );
   const togglePinned = useCallback((): Promise<boolean> => {
     if (state.status !== "ready") return Promise.resolve(false);
@@ -36,11 +64,18 @@ export function useCollapse() {
   }, [state]);
   /** Expands the given groups, projects, sections, and (when `pinned`) the Pinned section in one save. */
   const expand = useCallback(
-    (targets: { groups?: readonly string[]; projects?: readonly string[]; sections?: readonly string[]; pinned?: boolean }): Promise<boolean> => {
+    (targets: {
+      groups?: readonly string[];
+      projects?: readonly string[];
+      sections?: readonly string[];
+      pinned?: boolean;
+    }): Promise<boolean> => {
       if (state.status !== "ready") return Promise.resolve(false);
+      const expandedFlag = collapsedByDefault;
       const keep = (kind: CollapseKind) => {
         const ids = new Set(targets[kind] ?? []);
-        return state.values[kind].filter((entry) => !ids.has(entry));
+        const rest = state.values[kind].filter((entry) => !ids.has(entry));
+        return expandedFlag ? [...rest, ...ids] : rest;
       };
       return state.save(
         {
@@ -48,17 +83,37 @@ export function useCollapse() {
           groups: keep("groups"),
           projects: keep("projects"),
           sections: keep("sections"),
-          pinned: targets.pinned ? false : state.values.pinned,
+          pinned: targets.pinned ? expandedFlag : state.values.pinned,
         },
+        state.revision,
+      );
+    },
+    [state, collapsedByDefault],
+  );
+  /** Flips every section to the new default; the stored exceptions are cleared so the result is predictable. */
+  const setDefaultCollapsed = useCallback(
+    (value: boolean): Promise<boolean> => {
+      if (state.status !== "ready") return Promise.resolve(false);
+      return state.save(
+        { groups: [], projects: [], sections: [], pinned: false, collapsedByDefault: value },
         state.revision,
       );
     },
     [state],
   );
-  return { isCollapsed, toggle, setCollapsed, expand, pinnedCollapsed: values.pinned, togglePinned };
+  const pinnedCollapsed = collapsedByDefault !== values.pinned;
+  return {
+    isCollapsed,
+    toggle,
+    setCollapsed,
+    expand,
+    pinnedCollapsed,
+    togglePinned,
+    collapsedByDefault,
+    setDefaultCollapsed,
+  };
 }
 
-type Collapse = ReturnType<typeof useCollapse>;
 interface TemporaryCollapse {
   narrowed: boolean;
   groups: ReadonlySet<string>;
@@ -79,12 +134,12 @@ const freshTemporary = (narrowed: boolean): TemporaryCollapse => ({
  * expanded and collapse changes are kept in memory only; when narrowing ends, the stored state applies again,
  * untouched. Same shape as `useCollapse`.
  */
-export function useViewCollapse(collapse: Collapse, narrowed: boolean): Collapse {
+export function useViewCollapse(collapse: CollapseControls, narrowed: boolean): CollapseControls {
   const [temporary, setTemporary] = useState<TemporaryCollapse>(() => freshTemporary(narrowed));
   // Starting or ending narrowing resets the in-memory layer (derived state, set during render).
   const current = temporary.narrowed === narrowed ? temporary : freshTemporary(narrowed);
   if (current !== temporary) setTemporary(current);
-  return useMemo((): Collapse => {
+  return useMemo((): CollapseControls => {
     if (!narrowed) return collapse;
     const apply = (next: (state: TemporaryCollapse) => TemporaryCollapse) => {
       setTemporary((state) => next(state));
@@ -100,7 +155,8 @@ export function useViewCollapse(collapse: Collapse, narrowed: boolean): Collapse
     };
     return {
       isCollapsed: (kind, id) => current[kind].has(id),
-      toggle: (kind, id) => apply((state) => ({ ...state, [kind]: withIds(state[kind], [id], !state[kind].has(id)) })),
+      toggle: (kind, id) =>
+        apply((state) => ({ ...state, [kind]: withIds(state[kind], [id], !state[kind].has(id)) })),
       setCollapsed: (kind, ids, value) => apply((state) => ({ ...state, [kind]: withIds(state[kind], ids, value) })),
       expand: (targets) =>
         apply((state) => ({
