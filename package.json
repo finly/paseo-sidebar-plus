@@ -1,0 +1,42 @@
+{
+  "name": "paseo-sidebar-plus",
+  "version": "0.1.0",
+  "description": "Organize sidebar projects into groups and subgroups, and see status, pull requests, and checks on every workspace.",
+  "keywords": [
+    "paseo",
+    "paseo-plugin",
+    "sidebar",
+    "workspaces"
+  ],
+  "author": "finly",
+  "license": "MIT",
+  "repository": "github:finly/paseo-sidebar-plus",
+  "homepage": "https://github.com/finly/paseo-sidebar-plus#readme",
+  "bugs": "https://github.com/finly/paseo-sidebar-plus/issues",
+  "private": true,
+  "files": [
+    "paseo-plugin.json",
+    "OVERVIEW.md",
+    "OVERVIEW.*.md",
+    "index.client.ts",
+    "index.client.tsx",
+    "index.server.ts",
+    "index.server.tsx",
+    "client/",
+    "server/",
+    "shared/",
+    "assets/"
+  ],
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@getpaseo/plugin": "0.17.3",
+    "@tanstack/react-query": "^5.90.11",
+    "@types/react": "~19.2.0",
+    "react": "19.1.0",
+    "react-native": "0.81.5",
+    "typescript": "^5.9.3",
+    "zod": "^4.4.3"
+  }
+}

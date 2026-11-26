@@ -1,0 +1,282 @@
+{
+  "view": {
+    "title": "Sidebar+",
+    "description": "Projetos e espaços de trabalho, organizados do seu jeito"
+  },
+  "common": {
+    "back": "Voltar",
+    "cancel": "Cancelar",
+    "save": "Salvar",
+    "create": "Criar",
+    "delete": "Excluir",
+    "copyPath": "Copiar caminho",
+    "copiedPath": "Caminho copiado",
+    "moveToGroup": "Mover para grupo…",
+    "newGroup": "Novo grupo",
+    "newGroupEllipsis": "Novo grupo…",
+    "newWorkspace": "Novo espaço",
+    "ungrouped": "Sem grupo",
+    "unlabelled": "Sem rótulo"
+  },
+  "search": {
+    "placeholder": "Buscar espaços",
+    "clear": "Limpar busca"
+  },
+  "jump": {
+    "label": "Ir para o atual",
+    "a11y": "Ir para o espaço de trabalho atual"
+  },
+  "time": {
+    "now": "agora",
+    "minutesAgo": "há {{count}} min",
+    "hoursAgo": "há {{count}} h",
+    "daysAgo": "há {{count}} d",
+    "weeksAgo": "há {{count}} sem"
+  },
+  "row": {
+    "archiving": "Arquivando…"
+  },
+  "status": {
+    "needs_input": "aguarda entrada",
+    "failed": "falhou",
+    "running": "executando",
+    "attention": "atenção",
+    "done": "concluído"
+  },
+  "statusSection": {
+    "needsInput": "Aguarda entrada",
+    "failed": "Com falha",
+    "readyToReview": "Para revisar",
+    "working": "Em andamento",
+    "done": "Concluídos"
+  },
+  "pullRequest": {
+    "merged": "Mesclado",
+    "state": {
+      "open": "aberto",
+      "draft": "rascunho",
+      "merged": "mesclado",
+      "closed": "fechado"
+    }
+  },
+  "checks": {
+    "passed": "Aprovadas",
+    "pending": "pendentes",
+    "failed": "com falha",
+    "failedCount_one": "{{count}} com falha",
+    "failedCount_other": "{{count}} com falha"
+  },
+  "colors": {
+    "none": "nenhuma",
+    "accent": "principal",
+    "gray": "cinza",
+    "red": "vermelho",
+    "orange": "laranja",
+    "yellow": "amarelo",
+    "green": "verde",
+    "teal": "verde-azulado",
+    "blue": "azul",
+    "purple": "roxo",
+    "pink": "rosa"
+  },
+  "a11y": {
+    "status": "Status: {{status}}",
+    "label": "Rótulo {{name}}",
+    "service": "Serviço {{label}}",
+    "serviceUnhealthy": "Serviço {{label}}, com problema",
+    "checks": "Verificações {{status}}",
+    "pullRequest": "Pull request {{state}}",
+    "pullRequestNumber": "Pull request #{{number}} {{state}}",
+    "openWorkspace": "Abrir espaço de trabalho {{name}}",
+    "archivingWorkspace": "Arquivando espaço de trabalho {{name}}",
+    "workspaceActions": "Ações do espaço de trabalho {{name}}",
+    "expandGroup": "Expandir grupo {{name}}",
+    "collapseGroup": "Recolher grupo {{name}}",
+    "groupActions": "Ações do grupo {{name}}",
+    "expandProject": "Expandir projeto {{name}}",
+    "collapseProject": "Recolher projeto {{name}}",
+    "newWorkspaceIn": "Novo espaço de trabalho em {{name}}",
+    "projectActions": "Ações do projeto {{name}}",
+    "expandPinned": "Expandir espaços fixados",
+    "collapsePinned": "Recolher espaços fixados",
+    "expandSection": "Expandir {{name}}",
+    "collapseSection": "Recolher {{name}}",
+    "color": "Cor: {{color}}",
+    "icon": "Ícone: {{icon}}",
+    "hostColor": "Cor do host: {{color}}",
+    "option": "{{name}}: {{value}}",
+    "filter": "Filtro {{name}}: {{value}}"
+  },
+  "pinned": {
+    "title": "Fixados",
+    "edit": "Editar Fixados"
+  },
+  "empty": {
+    "title": "Nenhum espaço corresponde",
+    "hint": "Altere ou limpe os filtros da barra lateral para ver os espaços.",
+    "clear": "Limpar filtros",
+    "group": "Nenhum projeto ainda"
+  },
+  "workspaceMenu": {
+    "fallbackTitle": "Espaço de trabalho",
+    "renameTitle": "Renomear espaço",
+    "archiveTitle": "Arquivar espaço",
+    "copyBranch": "Copiar nome do branch",
+    "copiedBranch": "Nome do branch copiado",
+    "rename": "Renomear",
+    "pin": "Fixar",
+    "unpin": "Desafixar",
+    "labels": "Rótulos",
+    "archive": "Arquivar",
+    "archiveEllipsis": "Arquivar…",
+    "titleInput": "Título do espaço",
+    "renameHint": "Deixe vazio para usar o nome do espaço.",
+    "labelSearch": "Buscar ou criar rótulo",
+    "noLabels": "Ainda não há rótulos. Digite um nome para criar.",
+    "createLabel": "Criar \"{{name}}\"",
+    "archiveConfirm": "Arquivar {{name}}? Seus agentes e terminais param, e alterações não commitadas no worktree são perdidas."
+  },
+  "groupMenu": {
+    "fallbackTitle": "Grupo",
+    "editGroup": "Editar grupo…",
+    "editSubgroup": "Editar subgrupo…",
+    "newSubgroup": "Novo subgrupo…",
+    "collapseAll": "Recolher todos os projetos",
+    "expandAll": "Expandir todos os projetos",
+    "deleteGroup": "Excluir grupo…",
+    "deleteSubgroup": "Excluir subgrupo…",
+    "deleteGroupTitle": "Excluir grupo",
+    "deleteSubgroupTitle": "Excluir subgrupo",
+    "deleteGroupConfirm": "Excluir {{name}}? Seus projetos ficam sem grupo. Os espaços de trabalho não são afetados.",
+    "deleteGroupWithSubgroupsConfirm": "Excluir {{name}}? Seus subgrupos viram grupos principais e seus próprios projetos ficam sem grupo. Os espaços de trabalho não são afetados.",
+    "deleteSubgroupConfirm": "Excluir {{name}}? Seus projetos vão para {{parent}}. Os espaços de trabalho não são afetados."
+  },
+  "projectMenu": {
+    "fallbackTitle": "Projeto",
+    "editProject": "Editar projeto…",
+    "editTitle": "Editar {{name}}",
+    "archiveWorkspaces": "Arquivar workspaces…"
+  },
+  "move": {
+    "title": "Mover {{name}}",
+    "projectFallback": "Mover projeto",
+    "subgroupFallback": "Mover subgrupo",
+    "makeTopLevel": "Tornar grupo principal"
+  },
+  "editor": {
+    "newGroup": "Novo grupo",
+    "newSubgroup": "Novo subgrupo",
+    "editGroup": "Editar grupo",
+    "editSubgroup": "Editar subgrupo",
+    "name": "Nome",
+    "groupName": "Nome do grupo",
+    "color": "Cor",
+    "icon": "Ícone",
+    "noIcon": "Nenhum",
+    "orEmoji": "Ou emoji",
+    "emojiIcon": "Ícone emoji",
+    "projectNote": "Para renomear ou remover este projeto, mude para a barra lateral padrão do Paseo em Configurações > Barra lateral. O Paseo ainda não permite que plugins façam isso."
+  },
+  "fields": {
+    "branch": "Branch",
+    "project": "Projeto",
+    "pullRequest": "Pull request",
+    "checks": "Verificações",
+    "services": "Serviços",
+    "labels": "Rótulos",
+    "diffStats": "Alterações"
+  },
+  "filter": {
+    "host": "Host",
+    "project": "Projeto",
+    "labels": "Rótulos",
+    "allHosts": "Todos os hosts",
+    "allProjects": "Todos os projetos",
+    "allLabels": "Todos os rótulos",
+    "clear": "Limpar filtro",
+    "hostCount_one": "{{count}} host",
+    "hostCount_other": "{{count}} hosts",
+    "projectCount_one": "{{count}} projeto",
+    "projectCount_other": "{{count}} projetos",
+    "labelCount_one": "{{count}} rótulo",
+    "labelCount_other": "{{count}} rótulos"
+  },
+  "options": {
+    "preferences": "Preferências de exibição",
+    "show": "Mostrar",
+    "filter": "Filtrar",
+    "projectSection": "Projeto",
+    "display": "Exibição",
+    "density": "Densidade",
+    "showHosts": "Mostrar hosts",
+    "hostColors": "Cores dos hosts",
+    "showBackground": "Mostrar espaços em segundo plano",
+    "showLastActivity": "Mostrar última atividade",
+    "manualOrder": "Ordem manual",
+    "sort": "Ordenar",
+    "checks": "Verificações",
+    "rowTitle": "Título da linha",
+    "groupBy": "Agrupar por",
+    "textSize": "Tamanho do texto",
+    "rowHeight": "Altura da linha",
+    "indentation": "Recuo",
+    "line2": "Linha 2",
+    "line3": "Linha 3",
+    "off": "Não",
+    "iconAndText": "Ícone + texto",
+    "iconOnly": "Só ícone",
+    "hidden": "Oculto",
+    "title": "Título",
+    "name": "Nome",
+    "branch": "Branch",
+    "project": "Projeto",
+    "status": "Status",
+    "labels": "Rótulos",
+    "activity": "Atividade",
+    "created": "Criação",
+    "small": "Pequeno",
+    "medium": "Médio",
+    "default": "Padrão",
+    "large": "Grande",
+    "compact": "Compacta",
+    "roomy": "Espaçosa"
+  },
+  "bulkArchive": {
+    "title": "Arquivar workspaces em {{name}}",
+    "fallbackTitle": "Arquivar workspaces",
+    "filter": "Filtrar por título ou branch",
+    "chip": {
+      "done": "Concluídos",
+      "merged": "PR mesclado",
+      "idle": "Ociosos > 7 dias",
+      "all": "Todos",
+      "none": "Nenhum"
+    },
+    "selectAll": "Selecionar tudo",
+    "selectAllIn": "Selecionar tudo em {{name}}",
+    "notSelectedByDefault": "Não selecionados por padrão",
+    "reason": {
+      "running": "em execução",
+      "needsInput": "precisa de entrada",
+      "pinned": "fixado",
+      "open": "aberto agora",
+      "openPr": "PR aberto"
+    },
+    "selectedCount": "{{count}} selecionado(s)",
+    "archiveCount_one": "Arquivar {{count}} workspace",
+    "archiveCount_other": "Arquivar {{count}} workspaces",
+    "progress": "Arquivando {{done}} de {{total}}…",
+    "cancelling": "Cancelando, aguardando arquivamentos já iniciados…",
+    "cancelRest": "Cancelar o restante",
+    "summary": "{{done}} de {{total}} arquivados.",
+    "summaryCancelled_one": "{{count}} não arquivado(s) (cancelado).",
+    "summaryCancelled_other": "{{count}} não arquivado(s) (cancelado).",
+    "summaryFailed_one": "{{count}} falharam:",
+    "summaryFailed_other": "{{count}} falharam:",
+    "archivedToast_one": "{{count}} workspace arquivado",
+    "archivedToast_other": "{{count}} workspaces arquivados",
+    "close": "Fechar",
+    "empty": "Nenhum workspace para arquivar neste projeto.",
+    "noMatches": "Nenhum workspace corresponde ao filtro."
+  }
+}

@@ -1,0 +1,282 @@
+{
+  "view": {
+    "title": "Sidebar+",
+    "description": "Projects and workspaces, organized your way"
+  },
+  "common": {
+    "back": "Back",
+    "cancel": "Cancel",
+    "save": "Save",
+    "create": "Create",
+    "delete": "Delete",
+    "copyPath": "Copy path",
+    "copiedPath": "Copied path",
+    "moveToGroup": "Move to group…",
+    "newGroup": "New group",
+    "newGroupEllipsis": "New group…",
+    "newWorkspace": "New workspace",
+    "ungrouped": "Ungrouped",
+    "unlabelled": "Unlabelled"
+  },
+  "search": {
+    "placeholder": "Search workspaces",
+    "clear": "Clear search"
+  },
+  "jump": {
+    "label": "Jump to current",
+    "a11y": "Jump to current workspace"
+  },
+  "time": {
+    "now": "now",
+    "minutesAgo": "{{count}}m ago",
+    "hoursAgo": "{{count}}h ago",
+    "daysAgo": "{{count}}d ago",
+    "weeksAgo": "{{count}}w ago"
+  },
+  "row": {
+    "archiving": "Archiving…"
+  },
+  "status": {
+    "needs_input": "needs input",
+    "failed": "failed",
+    "running": "running",
+    "attention": "attention",
+    "done": "done"
+  },
+  "statusSection": {
+    "needsInput": "Needs input",
+    "failed": "Failed",
+    "readyToReview": "Ready to review",
+    "working": "Working",
+    "done": "Done"
+  },
+  "pullRequest": {
+    "merged": "Merged",
+    "state": {
+      "open": "open",
+      "draft": "draft",
+      "merged": "merged",
+      "closed": "closed"
+    }
+  },
+  "checks": {
+    "passed": "Passed",
+    "pending": "pending",
+    "failed": "failed",
+    "failedCount_one": "{{count}} failed",
+    "failedCount_other": "{{count}} failed"
+  },
+  "colors": {
+    "none": "none",
+    "accent": "primary",
+    "gray": "gray",
+    "red": "red",
+    "orange": "orange",
+    "yellow": "yellow",
+    "green": "green",
+    "teal": "teal",
+    "blue": "blue",
+    "purple": "purple",
+    "pink": "pink"
+  },
+  "a11y": {
+    "status": "Status: {{status}}",
+    "label": "Label {{name}}",
+    "service": "Service {{label}}",
+    "serviceUnhealthy": "Service {{label}}, unhealthy",
+    "checks": "Checks {{status}}",
+    "pullRequest": "Pull request {{state}}",
+    "pullRequestNumber": "Pull request #{{number}} {{state}}",
+    "openWorkspace": "Open workspace {{name}}",
+    "archivingWorkspace": "Archiving workspace {{name}}",
+    "workspaceActions": "Workspace {{name}} actions",
+    "expandGroup": "Expand group {{name}}",
+    "collapseGroup": "Collapse group {{name}}",
+    "groupActions": "Group {{name}} actions",
+    "expandProject": "Expand project {{name}}",
+    "collapseProject": "Collapse project {{name}}",
+    "newWorkspaceIn": "New workspace in {{name}}",
+    "projectActions": "Project {{name}} actions",
+    "expandPinned": "Expand pinned workspaces",
+    "collapsePinned": "Collapse pinned workspaces",
+    "expandSection": "Expand {{name}}",
+    "collapseSection": "Collapse {{name}}",
+    "color": "Color: {{color}}",
+    "icon": "Icon: {{icon}}",
+    "hostColor": "Host color: {{color}}",
+    "option": "{{name}}: {{value}}",
+    "filter": "{{name}} filter: {{value}}"
+  },
+  "pinned": {
+    "title": "Pinned",
+    "edit": "Edit Pinned"
+  },
+  "empty": {
+    "title": "No workspaces match",
+    "hint": "Change or clear the sidebar filters to see workspaces.",
+    "clear": "Clear filters",
+    "group": "No projects yet"
+  },
+  "workspaceMenu": {
+    "fallbackTitle": "Workspace",
+    "renameTitle": "Rename workspace",
+    "archiveTitle": "Archive workspace",
+    "copyBranch": "Copy branch name",
+    "copiedBranch": "Copied branch name",
+    "rename": "Rename",
+    "pin": "Pin",
+    "unpin": "Unpin",
+    "labels": "Labels",
+    "archive": "Archive",
+    "archiveEllipsis": "Archive…",
+    "titleInput": "Workspace title",
+    "renameHint": "Leave empty to use the workspace name.",
+    "labelSearch": "Search or create label",
+    "noLabels": "No labels yet. Type a name to create one.",
+    "createLabel": "Create \"{{name}}\"",
+    "archiveConfirm": "Archive {{name}}? Its agents and terminals stop, and uncommitted changes in a worktree are lost."
+  },
+  "groupMenu": {
+    "fallbackTitle": "Group",
+    "editGroup": "Edit group…",
+    "editSubgroup": "Edit subgroup…",
+    "newSubgroup": "New subgroup…",
+    "collapseAll": "Collapse all projects",
+    "expandAll": "Expand all projects",
+    "deleteGroup": "Delete group…",
+    "deleteSubgroup": "Delete subgroup…",
+    "deleteGroupTitle": "Delete group",
+    "deleteSubgroupTitle": "Delete subgroup",
+    "deleteGroupConfirm": "Delete {{name}}? Its projects become ungrouped. Workspaces are not affected.",
+    "deleteGroupWithSubgroupsConfirm": "Delete {{name}}? Its subgroups become top-level groups and its own projects become ungrouped. Workspaces are not affected.",
+    "deleteSubgroupConfirm": "Delete {{name}}? Its projects move to {{parent}}. Workspaces are not affected."
+  },
+  "projectMenu": {
+    "fallbackTitle": "Project",
+    "editProject": "Edit project…",
+    "editTitle": "Edit {{name}}",
+    "archiveWorkspaces": "Archive workspaces…"
+  },
+  "move": {
+    "title": "Move {{name}}",
+    "projectFallback": "Move project",
+    "subgroupFallback": "Move subgroup",
+    "makeTopLevel": "Make top-level group"
+  },
+  "editor": {
+    "newGroup": "New group",
+    "newSubgroup": "New subgroup",
+    "editGroup": "Edit group",
+    "editSubgroup": "Edit subgroup",
+    "name": "Name",
+    "groupName": "Group name",
+    "color": "Color",
+    "icon": "Icon",
+    "noIcon": "None",
+    "orEmoji": "Or emoji",
+    "emojiIcon": "Emoji icon",
+    "projectNote": "To rename or remove this project, switch to Paseo's default sidebar in Settings > Sidebar. Paseo does not let plugins do this yet."
+  },
+  "fields": {
+    "branch": "Branch",
+    "project": "Project",
+    "pullRequest": "Pull request",
+    "checks": "Checks",
+    "services": "Services",
+    "labels": "Labels",
+    "diffStats": "Diff stats"
+  },
+  "filter": {
+    "host": "Host",
+    "project": "Project",
+    "labels": "Labels",
+    "allHosts": "All hosts",
+    "allProjects": "All projects",
+    "allLabels": "All labels",
+    "clear": "Clear filter",
+    "hostCount_one": "{{count}} host",
+    "hostCount_other": "{{count}} hosts",
+    "projectCount_one": "{{count}} project",
+    "projectCount_other": "{{count}} projects",
+    "labelCount_one": "{{count}} label",
+    "labelCount_other": "{{count}} labels"
+  },
+  "options": {
+    "preferences": "Display preferences",
+    "show": "Show",
+    "filter": "Filter",
+    "projectSection": "Project",
+    "display": "Display",
+    "density": "Density",
+    "showHosts": "Show hosts",
+    "hostColors": "Host colors",
+    "showBackground": "Show background workspaces",
+    "showLastActivity": "Show last activity",
+    "manualOrder": "Manual order",
+    "sort": "Sort",
+    "checks": "Checks",
+    "rowTitle": "Row title",
+    "groupBy": "Group by",
+    "textSize": "Text size",
+    "rowHeight": "Row height",
+    "indentation": "Indentation",
+    "line2": "Line 2",
+    "line3": "Line 3",
+    "off": "Off",
+    "iconAndText": "Icon + text",
+    "iconOnly": "Icon only",
+    "hidden": "Hidden",
+    "title": "Title",
+    "name": "Name",
+    "branch": "Branch",
+    "project": "Project",
+    "status": "Status",
+    "labels": "Labels",
+    "activity": "Activity",
+    "created": "Created",
+    "small": "Small",
+    "medium": "Medium",
+    "default": "Default",
+    "large": "Large",
+    "compact": "Compact",
+    "roomy": "Roomy"
+  },
+  "bulkArchive": {
+    "title": "Archive workspaces in {{name}}",
+    "fallbackTitle": "Archive workspaces",
+    "filter": "Filter by title or branch",
+    "chip": {
+      "done": "Done",
+      "merged": "PR merged",
+      "idle": "Idle > 7 days",
+      "all": "All",
+      "none": "None"
+    },
+    "selectAll": "Select all",
+    "selectAllIn": "Select all in {{name}}",
+    "notSelectedByDefault": "Not selected by default",
+    "reason": {
+      "running": "running",
+      "needsInput": "needs input",
+      "pinned": "pinned",
+      "open": "open now",
+      "openPr": "open PR"
+    },
+    "selectedCount": "{{count}} selected",
+    "archiveCount_one": "Archive {{count}} workspace",
+    "archiveCount_other": "Archive {{count}} workspaces",
+    "progress": "Archiving {{done}} of {{total}}…",
+    "cancelling": "Cancelling, waiting for archives already started…",
+    "cancelRest": "Cancel the rest",
+    "summary": "Archived {{done}} of {{total}}.",
+    "summaryCancelled_one": "{{count}} not archived (cancelled).",
+    "summaryCancelled_other": "{{count}} not archived (cancelled).",
+    "summaryFailed_one": "{{count}} failed:",
+    "summaryFailed_other": "{{count}} failed:",
+    "archivedToast_one": "Archived {{count}} workspace",
+    "archivedToast_other": "Archived {{count}} workspaces",
+    "close": "Close",
+    "empty": "No workspaces to archive in this project.",
+    "noMatches": "No workspaces match the filter."
+  }
+}

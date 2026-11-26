@@ -1,0 +1,48 @@
+{
+  "id": "sidebar-plus",
+  "name": "Sidebar+",
+  "description": "Organize sidebar projects into groups and subgroups, and see status, pull requests, and checks on every workspace.",
+  "translations": {
+    "ar": {
+      "description": "نظّم مشاريع الشريط الجانبي في مجموعات ومجموعات فرعية، واطّلع على الحالة وطلبات الدمج والفحوص لكل مساحة عمل."
+    },
+    "es": {
+      "description": "Organiza los proyectos de la barra lateral en grupos y subgrupos, y ve el estado, los pull requests y las comprobaciones de cada espacio de trabajo."
+    },
+    "fr": {
+      "description": "Organisez les projets de la barre latérale en groupes et sous-groupes, et voyez le statut, les pull requests et les vérifications de chaque espace de travail."
+    },
+    "ja": {
+      "description": "サイドバーのプロジェクトをグループとサブグループに整理し、各ワークスペースのステータス、プルリクエスト、チェックを確認できます。"
+    },
+    "ko": {
+      "description": "사이드바 프로젝트를 그룹과 하위 그룹으로 정리하고, 각 워크스페이스의 상태, 풀 리퀘스트, 검사를 확인하세요."
+    },
+    "pt-BR": {
+      "description": "Organize os projetos da barra lateral em grupos e subgrupos e veja o status, os pull requests e as verificações de cada workspace."
+    },
+    "ru": {
+      "description": "Распределяйте проекты боковой панели по группам и подгруппам и смотрите статус, pull request и проверки для каждого рабочего пространства."
+    },
+    "zh-CN": {
+      "description": "把侧边栏项目整理成分组和子分组，并在每个工作区查看状态、拉取请求和检查。"
+    }
+  },
+  "icon": "assets/icon.png",
+  "media": [
+    "assets/00-thumbnail.png",
+    "assets/sidebar-plus-demo.mp4",
+    "assets/01-hero.png",
+    "assets/02-collapsed.png",
+    "assets/03-group-editor.png",
+    "assets/04-display-preferences.png",
+    "assets/05-group-by-status.png",
+    "assets/06-search.png",
+    "assets/07-workspace-menu.png",
+    "assets/08-labels-picker.png",
+    "assets/09-bulk-archive.png"
+  ],
+  "requirements": {
+    "paseo": ">=0.16.0"
+  }
+}

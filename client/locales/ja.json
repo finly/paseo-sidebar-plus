@@ -1,0 +1,282 @@
+{
+  "view": {
+    "title": "Sidebar+",
+    "description": "プロジェクトとワークスペースを自分好みに整理"
+  },
+  "common": {
+    "back": "戻る",
+    "cancel": "キャンセル",
+    "save": "保存",
+    "create": "作成",
+    "delete": "削除",
+    "copyPath": "パスをコピー",
+    "copiedPath": "パスをコピーしました",
+    "moveToGroup": "グループへ移動…",
+    "newGroup": "新規グループ",
+    "newGroupEllipsis": "新規グループ…",
+    "newWorkspace": "新規ワークスペース",
+    "ungrouped": "グループなし",
+    "unlabelled": "ラベルなし"
+  },
+  "search": {
+    "placeholder": "ワークスペースを検索",
+    "clear": "検索をクリア"
+  },
+  "jump": {
+    "label": "現在へ移動",
+    "a11y": "現在のワークスペースへ移動"
+  },
+  "time": {
+    "now": "今",
+    "minutesAgo": "{{count}}分前",
+    "hoursAgo": "{{count}}時間前",
+    "daysAgo": "{{count}}日前",
+    "weeksAgo": "{{count}}週間前"
+  },
+  "row": {
+    "archiving": "アーカイブ中…"
+  },
+  "status": {
+    "needs_input": "入力待ち",
+    "failed": "失敗",
+    "running": "実行中",
+    "attention": "要確認",
+    "done": "完了"
+  },
+  "statusSection": {
+    "needsInput": "入力待ち",
+    "failed": "失敗",
+    "readyToReview": "レビュー待ち",
+    "working": "作業中",
+    "done": "完了"
+  },
+  "pullRequest": {
+    "merged": "マージ済み",
+    "state": {
+      "open": "オープン",
+      "draft": "ドラフト",
+      "merged": "マージ済み",
+      "closed": "クローズ"
+    }
+  },
+  "checks": {
+    "passed": "成功",
+    "pending": "保留中",
+    "failed": "失敗",
+    "failedCount_one": "{{count}}件失敗",
+    "failedCount_other": "{{count}}件失敗"
+  },
+  "colors": {
+    "none": "なし",
+    "accent": "メイン",
+    "gray": "グレー",
+    "red": "赤",
+    "orange": "オレンジ",
+    "yellow": "黄",
+    "green": "緑",
+    "teal": "ティール",
+    "blue": "青",
+    "purple": "紫",
+    "pink": "ピンク"
+  },
+  "a11y": {
+    "status": "ステータス：{{status}}",
+    "label": "ラベル {{name}}",
+    "service": "サービス {{label}}",
+    "serviceUnhealthy": "サービス {{label}}、異常",
+    "checks": "チェック {{status}}",
+    "pullRequest": "プルリクエスト {{state}}",
+    "pullRequestNumber": "プルリクエスト #{{number}} {{state}}",
+    "openWorkspace": "ワークスペース {{name}} を開く",
+    "archivingWorkspace": "ワークスペース {{name}} をアーカイブ中",
+    "workspaceActions": "ワークスペース {{name}} の操作",
+    "expandGroup": "グループ {{name}} を展開",
+    "collapseGroup": "グループ {{name}} を折りたたむ",
+    "groupActions": "グループ {{name}} の操作",
+    "expandProject": "プロジェクト {{name}} を展開",
+    "collapseProject": "プロジェクト {{name}} を折りたたむ",
+    "newWorkspaceIn": "{{name}} に新規ワークスペース",
+    "projectActions": "プロジェクト {{name}} の操作",
+    "expandPinned": "ピン留めしたワークスペースを展開",
+    "collapsePinned": "ピン留めしたワークスペースを折りたたむ",
+    "expandSection": "{{name}} を展開",
+    "collapseSection": "{{name}} を折りたたむ",
+    "color": "色：{{color}}",
+    "icon": "アイコン：{{icon}}",
+    "hostColor": "ホストの色：{{color}}",
+    "option": "{{name}}：{{value}}",
+    "filter": "{{name}} フィルター：{{value}}"
+  },
+  "pinned": {
+    "title": "ピン留め",
+    "edit": "ピン留めを編集"
+  },
+  "empty": {
+    "title": "一致するワークスペースはありません",
+    "hint": "サイドバーのフィルターを変更またはクリアすると表示されます。",
+    "clear": "フィルターをクリア",
+    "group": "プロジェクトはまだありません"
+  },
+  "workspaceMenu": {
+    "fallbackTitle": "ワークスペース",
+    "renameTitle": "ワークスペース名を変更",
+    "archiveTitle": "ワークスペースをアーカイブ",
+    "copyBranch": "ブランチ名をコピー",
+    "copiedBranch": "ブランチ名をコピーしました",
+    "rename": "名前を変更",
+    "pin": "ピン留め",
+    "unpin": "ピン留めを解除",
+    "labels": "ラベル",
+    "archive": "アーカイブ",
+    "archiveEllipsis": "アーカイブ…",
+    "titleInput": "ワークスペースのタイトル",
+    "renameHint": "空欄にするとワークスペース名を使います。",
+    "labelSearch": "ラベルを検索または作成",
+    "noLabels": "ラベルはまだありません。名前を入力して作成します。",
+    "createLabel": "「{{name}}」を作成",
+    "archiveConfirm": "{{name}} をアーカイブしますか？エージェントとターミナルは停止し、ワークツリーの未コミットの変更は失われます。"
+  },
+  "groupMenu": {
+    "fallbackTitle": "グループ",
+    "editGroup": "グループを編集…",
+    "editSubgroup": "サブグループを編集…",
+    "newSubgroup": "新規サブグループ…",
+    "collapseAll": "すべてのプロジェクトを折りたたむ",
+    "expandAll": "すべてのプロジェクトを展開",
+    "deleteGroup": "グループを削除…",
+    "deleteSubgroup": "サブグループを削除…",
+    "deleteGroupTitle": "グループを削除",
+    "deleteSubgroupTitle": "サブグループを削除",
+    "deleteGroupConfirm": "{{name}} を削除しますか？プロジェクトはグループなしになります。ワークスペースには影響しません。",
+    "deleteGroupWithSubgroupsConfirm": "{{name}} を削除しますか？サブグループはトップレベルのグループになり、直下のプロジェクトはグループなしになります。ワークスペースには影響しません。",
+    "deleteSubgroupConfirm": "{{name}} を削除しますか？プロジェクトは {{parent}} に移動します。ワークスペースには影響しません。"
+  },
+  "projectMenu": {
+    "fallbackTitle": "プロジェクト",
+    "editProject": "プロジェクトを編集…",
+    "editTitle": "{{name}} を編集",
+    "archiveWorkspaces": "ワークスペースをアーカイブ…"
+  },
+  "move": {
+    "title": "{{name}} を移動",
+    "projectFallback": "プロジェクトを移動",
+    "subgroupFallback": "サブグループを移動",
+    "makeTopLevel": "トップレベルのグループにする"
+  },
+  "editor": {
+    "newGroup": "新規グループ",
+    "newSubgroup": "新規サブグループ",
+    "editGroup": "グループを編集",
+    "editSubgroup": "サブグループを編集",
+    "name": "名前",
+    "groupName": "グループ名",
+    "color": "色",
+    "icon": "アイコン",
+    "noIcon": "なし",
+    "orEmoji": "または絵文字",
+    "emojiIcon": "絵文字アイコン",
+    "projectNote": "このプロジェクトの名前変更や削除は、「設定 > サイドバー」で Paseo の標準サイドバーに切り替えて行ってください。Paseo はまだプラグインにこの操作を許可していません。"
+  },
+  "fields": {
+    "branch": "ブランチ",
+    "project": "プロジェクト",
+    "pullRequest": "プルリクエスト",
+    "checks": "チェック",
+    "services": "サービス",
+    "labels": "ラベル",
+    "diffStats": "差分統計"
+  },
+  "filter": {
+    "host": "ホスト",
+    "project": "プロジェクト",
+    "labels": "ラベル",
+    "allHosts": "すべてのホスト",
+    "allProjects": "すべてのプロジェクト",
+    "allLabels": "すべてのラベル",
+    "clear": "フィルターをクリア",
+    "hostCount_one": "{{count}}台のホスト",
+    "hostCount_other": "{{count}}台のホスト",
+    "projectCount_one": "{{count}}件のプロジェクト",
+    "projectCount_other": "{{count}}件のプロジェクト",
+    "labelCount_one": "{{count}}個のラベル",
+    "labelCount_other": "{{count}}個のラベル"
+  },
+  "options": {
+    "preferences": "表示設定",
+    "show": "表示",
+    "filter": "フィルター",
+    "projectSection": "プロジェクト",
+    "display": "表示",
+    "density": "密度",
+    "showHosts": "ホストを表示",
+    "hostColors": "ホストの色",
+    "showBackground": "バックグラウンドのワークスペースを表示",
+    "showLastActivity": "最終アクティビティを表示",
+    "manualOrder": "手動で並べ替え",
+    "sort": "並べ替え",
+    "checks": "チェック",
+    "rowTitle": "行のタイトル",
+    "groupBy": "グループ化",
+    "textSize": "文字サイズ",
+    "rowHeight": "行の高さ",
+    "indentation": "インデント",
+    "line2": "2行目",
+    "line3": "3行目",
+    "off": "オフ",
+    "iconAndText": "アイコン + 文字",
+    "iconOnly": "アイコンのみ",
+    "hidden": "非表示",
+    "title": "タイトル",
+    "name": "名前",
+    "branch": "ブランチ",
+    "project": "プロジェクト",
+    "status": "ステータス",
+    "labels": "ラベル",
+    "activity": "アクティビティ",
+    "created": "作成日",
+    "small": "小",
+    "medium": "中",
+    "default": "標準",
+    "large": "大",
+    "compact": "コンパクト",
+    "roomy": "ゆったり"
+  },
+  "bulkArchive": {
+    "title": "{{name}} のワークスペースをアーカイブ",
+    "fallbackTitle": "ワークスペースをアーカイブ",
+    "filter": "タイトルまたはブランチで絞り込み",
+    "chip": {
+      "done": "完了",
+      "merged": "PR マージ済み",
+      "idle": "7日以上アイドル",
+      "all": "すべて",
+      "none": "なし"
+    },
+    "selectAll": "すべて選択",
+    "selectAllIn": "{{name}} をすべて選択",
+    "notSelectedByDefault": "既定では選択されません",
+    "reason": {
+      "running": "実行中",
+      "needsInput": "入力待ち",
+      "pinned": "ピン留め",
+      "open": "表示中",
+      "openPr": "オープンな PR"
+    },
+    "selectedCount": "{{count}}件選択",
+    "archiveCount_one": "{{count}}件のワークスペースをアーカイブ",
+    "archiveCount_other": "{{count}}件のワークスペースをアーカイブ",
+    "progress": "アーカイブ中 {{done}} / {{total}}…",
+    "cancelling": "キャンセル中。開始済みのアーカイブを待っています…",
+    "cancelRest": "残りをキャンセル",
+    "summary": "{{total}}件中{{done}}件をアーカイブしました。",
+    "summaryCancelled_one": "{{count}}件はアーカイブされていません（キャンセル）。",
+    "summaryCancelled_other": "{{count}}件はアーカイブされていません（キャンセル）。",
+    "summaryFailed_one": "{{count}}件失敗:",
+    "summaryFailed_other": "{{count}}件失敗:",
+    "archivedToast_one": "{{count}}件のワークスペースをアーカイブしました",
+    "archivedToast_other": "{{count}}件のワークスペースをアーカイブしました",
+    "close": "閉じる",
+    "empty": "このプロジェクトにアーカイブできるワークスペースはありません。",
+    "noMatches": "条件に一致するワークスペースはありません。"
+  }
+}
