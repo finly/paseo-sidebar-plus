@@ -1,6 +1,6 @@
 {
   "name": "paseo-sidebar-plus",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Organize sidebar projects into groups and subgroups, and see status, pull requests, and checks on every workspace.",
   "keywords": [
     "paseo",
