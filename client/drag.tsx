@@ -14,6 +14,16 @@ import {
 } from "react-native";
 import { swallowNextClick } from "./web";
 
+// This plugin typechecks without the DOM library. Declare only what this module uses.
+interface DomNode {
+  isConnected: boolean;
+  offsetHeight: number;
+  parentElement: DomNode | null;
+  getBoundingClientRect(): { top: number };
+}
+const isDomNode = (value: unknown): value is DomNode =>
+  typeof value === "object" && value !== null && typeof (value as DomNode).getBoundingClientRect === "function";
+
 /**
  * What is being dragged: a group (reorder), a subgroup (reorder among its parent's subgroups), a project
  * (reorder within its group, subgroup, or ungrouped, or move to another group or subgroup), a pinned
@@ -133,8 +143,35 @@ export function useDragController({
     content: 0,
     scrollY: 0,
   }).current;
+  /**
+   * Web: react-native-web fires `onLayout` only when an element resizes (ResizeObserver), not when it moves,
+   * so offsets go stale after a reorder, a collapse, or a change above. Each element's node is kept to
+   * re-measure all offsets when a drag starts.
+   */
+  const nodes = useRef(new Map<string, { node: DomNode; apply(y: number, height: number): void }>()).current;
 
   return useMemo(() => {
+    /** Applies a layout event and, on web, keeps the node for `remeasure`. */
+    const track = (key: string, event: LayoutChangeEvent, apply: (y: number, height: number) => void) => {
+      const { y, height } = event.nativeEvent.layout;
+      apply(y, height);
+      const node = (event.nativeEvent as unknown as { target?: unknown }).target;
+      if (IS_WEB && isDomNode(node)) nodes.set(key, { node, apply });
+    };
+
+    /** Web: measures every tracked element against its parent node, as react-native-web's `onLayout` does. */
+    const remeasure = () => {
+      if (!IS_WEB) return;
+      for (const [key, { node, apply }] of nodes) {
+        const parent = node.parentElement;
+        if (!node.isConnected || !parent) {
+          nodes.delete(key);
+          continue;
+        }
+        apply(node.getBoundingClientRect().top - parent.getBoundingClientRect().top, node.offsetHeight);
+      }
+    };
+
     const groupBodyTop = (groupId: string): number =>
       (layout.groups.get(groupId)?.y ?? 0) + (layout.bodies.get(groupId) ?? 0);
 
@@ -267,6 +304,7 @@ export function useDragController({
 
     const start = (item: DragItem) => {
       if (session.current) return;
+      remeasure();
       const header = layout.headers.get(itemKey(item)) ?? 24;
       session.current = {
         item,
@@ -391,44 +429,36 @@ export function useDragController({
         const span = layout.subgroups.get(groupId);
         return span ? { y: subgroupTop(groupId, parentId), height: span.height } : null;
       },
-      onGroupLayout: (id: string) => (event: LayoutChangeEvent) => {
-        const { y, height } = event.nativeEvent.layout;
-        layout.groups.set(id, { y, height });
-      },
-      onGroupBodyLayout: (id: string) => (event: LayoutChangeEvent) => {
-        layout.bodies.set(id, event.nativeEvent.layout.y);
-      },
-      onSubgroupLayout: (id: string) => (event: LayoutChangeEvent) => {
-        const { y, height } = event.nativeEvent.layout;
-        layout.subgroups.set(id, { y, height });
-      },
-      onSubgroupBodyLayout: (id: string) => (event: LayoutChangeEvent) => {
-        layout.subgroupBodies.set(id, event.nativeEvent.layout.y);
-      },
-      onProjectLayout: (key: string) => (event: LayoutChangeEvent) => {
-        const { y, height } = event.nativeEvent.layout;
-        layout.projects.set(key, { y, height });
-      },
-      onHeaderLayout: (item: DragItem) => (event: LayoutChangeEvent) => {
-        layout.headers.set(itemKey(item), event.nativeEvent.layout.height);
-      },
+      onGroupLayout: (id: string) => (event: LayoutChangeEvent) =>
+        track(`group:${id}`, event, (y, height) => layout.groups.set(id, { y, height })),
+      onGroupBodyLayout: (id: string) => (event: LayoutChangeEvent) =>
+        track(`body:${id}`, event, (y) => layout.bodies.set(id, y)),
+      onSubgroupLayout: (id: string) => (event: LayoutChangeEvent) =>
+        track(`subgroup:${id}`, event, (y, height) => layout.subgroups.set(id, { y, height })),
+      onSubgroupBodyLayout: (id: string) => (event: LayoutChangeEvent) =>
+        track(`subgroupBody:${id}`, event, (y) => layout.subgroupBodies.set(id, y)),
+      onProjectLayout: (key: string) => (event: LayoutChangeEvent) =>
+        track(`project:${key}`, event, (y, height) => layout.projects.set(key, { y, height })),
+      onHeaderLayout: (item: DragItem) => (event: LayoutChangeEvent) =>
+        track(`header:${itemKey(item)}`, event, (_y, height) => layout.headers.set(itemKey(item), height)),
       onPinnedSectionLayout(event: LayoutChangeEvent) {
-        layout.pinnedSection = event.nativeEvent.layout.y;
+        track("pinnedSection", event, (y) => {
+          layout.pinnedSection = y;
+        });
       },
       onPinnedListLayout(event: LayoutChangeEvent) {
-        layout.pinnedList = event.nativeEvent.layout.y;
+        track("pinnedList", event, (y) => {
+          layout.pinnedList = y;
+        });
       },
-      onPinnedLayout: (key: string) => (event: LayoutChangeEvent) => {
-        const { y, height } = event.nativeEvent.layout;
-        layout.pinned.set(key, { y, height });
-      },
-      onWorkspaceLayout: (key: string) => (event: LayoutChangeEvent) => {
-        const { y, height } = event.nativeEvent.layout;
-        layout.rows.set(key, { y, height });
-      },
+      onPinnedLayout: (key: string) => (event: LayoutChangeEvent) =>
+        track(`pinned:${key}`, event, (y, height) => layout.pinned.set(key, { y, height })),
+      onWorkspaceLayout: (key: string) => (event: LayoutChangeEvent) =>
+        track(`row:${key}`, event, (y, height) => layout.rows.set(key, { y, height })),
       onUngroupedLayout(event: LayoutChangeEvent) {
-        const { y, height } = event.nativeEvent.layout;
-        layout.ungrouped = { y, height };
+        track("ungrouped", event, (y, height) => {
+          layout.ungrouped = { y, height };
+        });
       },
       onViewportLayout(event: LayoutChangeEvent) {
         layout.viewport = event.nativeEvent.layout.height;
@@ -441,7 +471,7 @@ export function useDragController({
         update();
       },
     };
-  }, [armed, dragging, target, layout, translate]);
+  }, [armed, dragging, target, layout, nodes, translate]);
 }
 
 export type DragController = ReturnType<typeof useDragController>;
