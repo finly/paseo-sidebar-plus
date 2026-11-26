@@ -636,9 +636,10 @@ export function SidebarPlusView({ active, navigation, theme }: PluginSidebarView
   const filtersActive = hasActiveFilters(filters);
   /** Filters or a search narrow the list. */
   const filtered = filtersActive || searching;
-  // While searching or filtered, every section with matches starts expanded; collapsing then is in memory only,
-  // and the stored collapse state applies again, untouched, once the search and filters are cleared.
-  const viewCollapse = useViewCollapse(collapse, filtered);
+  // While searching, every section with matches starts expanded; collapsing then is in memory only, and the
+  // stored collapse state applies again, untouched, once the query is cleared. Filters keep the configured
+  // collapse state: a saved host or project filter is a view, not a search, so it must not reset the layout.
+  const viewCollapse = useViewCollapse(collapse, searching);
   const { isCollapsed, toggle, pinnedCollapsed, togglePinned } = viewCollapse;
   const matches = useMemo(
     () =>
@@ -864,7 +865,8 @@ export function SidebarPlusView({ active, navigation, theme }: PluginSidebarView
   );
   const activeSpot = spotOf(activeKey);
   /** The most recently prompted workspace on display. */
-  const latestKey = latestOrder[0]?.items[0]?.key ?? null;
+  const latestRef = latestOrder[0]?.items[0] ?? null;
+  const latestKey = latestRef?.key ?? null;
   const latestSpot = spotOf(latestKey);
   /** Collapsed parents hiding a spot's row. */
   const collapsedParents = (spot: WorkspaceSpot | null): CollapsedParents | null => {
@@ -1345,7 +1347,10 @@ export function SidebarPlusView({ active, navigation, theme }: PluginSidebarView
                         label: t("jump.latestLabel"),
                         accessibilityLabel: t("jump.latestA11y"),
                         direction: latestCollapsed ? null : latestJump.offscreen,
-                        onPress: () => jumpTo(latestJump, latestCollapsed),
+                        onPress: () => {
+                          jumpTo(latestJump, latestCollapsed);
+                          if (latestRef) navigation.openWorkspace(latestRef);
+                        },
                       },
                     ]
                   : []),
