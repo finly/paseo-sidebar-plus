@@ -1,7 +1,12 @@
-import type { PaseoWorkspace, PaseoWorkspaceUpdate } from "@getpaseo/client";
 import type { PluginHostSummary, WorkspaceRef } from "@getpaseo/plugin/client";
 import { getPaseoClient } from "@getpaseo/plugin/client";
 import { createContext, type ReactNode, useCallback, useContext, useEffect, useMemo, useSyncExternalStore } from "react";
+
+// Derived from the SDK so the plugin builds without @getpaseo/client installed.
+type PaseoApi = ReturnType<typeof getPaseoClient>;
+type PaseoWorkspace = Exclude<Parameters<PaseoApi["workspaces"]["ref"]>[0], string>;
+type PaseoWorkspaceHandle = ReturnType<PaseoApi["workspaces"]["ref"]>;
+type PaseoWorkspaceUpdate = Parameters<Parameters<PaseoWorkspaceHandle["subscribe"]>[0]>[0];
 
 /** Full daemon descriptor: pull request, checks, services, forge. Not part of the plugin snapshot. */
 export type WorkspaceDescriptor = PaseoWorkspace;
