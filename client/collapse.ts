@@ -90,11 +90,14 @@ export function useCollapse() {
     },
     [state, collapsedByDefault],
   );
-  /** Flips the default and keeps the stored exceptions, so nothing the user opened or closed is reset. */
+  /** Flips every section to the new default; the stored exceptions are cleared, since keeping them would invert them. */
   const setDefaultCollapsed = useCallback(
     (value: boolean): Promise<boolean> => {
       if (state.status !== "ready") return Promise.resolve(false);
-      return state.save({ ...state.values, collapsedByDefault: value }, state.revision);
+      return state.save(
+        { groups: [], projects: [], sections: [], pinned: false, collapsedByDefault: value },
+        state.revision,
+      );
     },
     [state],
   );
