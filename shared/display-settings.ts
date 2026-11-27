@@ -154,6 +154,10 @@ export const displaySettings = defineSettings({
     textSize: z.enum(TEXT_SIZES).default("default"),
     rowHeight: z.enum(ROW_HEIGHTS).default("default"),
     indentation: z.enum(INDENTATIONS).default("small"),
+    /** Most workspaces a project or label section shows; the rest wait behind "Show more". Status sections and Pinned are never capped. */
+    sectionRowLimit: z.number().int().min(1).max(99).default(6),
+    /** Workspaces with no activity this many days hide behind "Show more"; 0 disables the age limit. */
+    sectionAgeLimitDays: z.number().int().min(0).max(365).default(30),
   }),
 });
 

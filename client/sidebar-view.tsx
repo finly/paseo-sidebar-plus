@@ -24,7 +24,7 @@ import {
   topGroupOfProject,
   topLevelGroups,
 } from "../shared/groups";
-import { useCollapse, useViewCollapse } from "./collapse";
+import { type CollapseControls, useCollapse, useViewCollapse } from "./collapse";
 import { CountChip, CountColumn } from "./count-chip";
 import { DragBlock, DragHandle, type DragItem, type DropTarget, DropIndicator, dragPressProps, useDragController } from "./drag";
 import { useDisplaySettings } from "./display-settings";
@@ -55,6 +55,10 @@ import { WorkspaceDescriptorFeed } from "./workspace-descriptors";
 import { WorkspaceRow } from "./workspace-row";
 import { SearchBox } from "./search-box";
 import { type JumpTracker, JumpPills, useJumpToRow } from "./jump-to-active";
+import { useSectionReveal } from "./reveal";
+import { useWorkspaceActivity } from "./workspace-activity";
+import { useMinuteNow } from "./snapshot-fields";
+import { capSectionItems, cutoffOf } from "../shared/section-cap";
 import { stickyStyle, useSurfaceBehind } from "./web";
 
 const DEFAULT_SETTINGS: DisplaySettings = displaySettings.schema.parse({});
@@ -392,6 +396,47 @@ function NewWorkspaceRow({
   );
 }
 
+/** A muted row under a capped section that reveals the workspaces the cap hides. */
+function ShowMoreRow({
+  count,
+  onPress,
+  theme,
+  metrics,
+}: {
+  count: number;
+  onPress(): void;
+  theme: PluginSidebarViewProps["theme"];
+  metrics: ReturnType<typeof densityMetrics>;
+}) {
+  const t = useT();
+  const [hovered, setHovered] = useState(false);
+  const color = hovered ? theme.colors.foreground : theme.colors.foregroundMuted;
+  const label = t("common.showMore", { count });
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      onPress={onPress}
+      onHoverIn={() => setHovered(true)}
+      onHoverOut={() => setHovered(false)}
+      style={{
+        minHeight: metrics.rowMinHeight,
+        paddingVertical: metrics.rowPaddingVertical,
+        paddingRight: 12,
+        paddingLeft: metrics.rowIndent,
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 8,
+      }}
+    >
+      <Icon name="ChevronDown" color={color} size={metrics.secondaryFontSize} />
+      <Text style={{ color, fontSize: metrics.secondaryFontSize, lineHeight: metrics.secondaryLineHeight }}>
+        {label}
+      </Text>
+    </Pressable>
+  );
+}
+
 /**
  * The Pinned section heading: collapse chevron, Sidebar+ icon, title (tinted by its color), count, and a
  * ⋯ button that opens the Pinned icon and color editor (always shown).
@@ -639,7 +684,6 @@ export function SidebarPlusView({ active, navigation, theme }: PluginSidebarView
   // While searching or filtered, every section with matches starts expanded; collapsing then is in memory only,
   // and the stored collapse state applies again, untouched, once the search and filters are cleared.
   const viewCollapse = useViewCollapse(collapse, filtered);
-  const { isCollapsed, toggle, pinnedCollapsed, togglePinned } = viewCollapse;
   const matches = useMemo(
     () =>
       filtered
@@ -662,6 +706,33 @@ export function SidebarPlusView({ active, navigation, theme }: PluginSidebarView
   /** Visible workspaces by last activity; the first item is the latest one. */
   const latestOrder = useWorkspaces({ where, orderBy: SORTERS.lastActivity, groupBy: () => "latest" });
   const grouping = settings.grouping;
+  const reveal = useSectionReveal(`${grouping}:${filtered}`);
+  const now = useMinuteNow();
+  const activity = useWorkspaceActivity(settings.showBackground ? undefined : hideBackground);
+  /** Section caps are off while searching or filtering, and never apply to status sections. */
+  const capLimits = useMemo(
+    () => ({
+      count: filtered || grouping === "status" ? 0 : settings.sectionRowLimit,
+      cutoff: filtered || grouping === "status" ? null : cutoffOf(settings.sectionAgeLimitDays, now),
+    }),
+    [filtered, grouping, settings.sectionRowLimit, settings.sectionAgeLimitDays, now],
+  );
+  /** Collapsing a section also drops its "Show more", so it opens capped again. */
+  const collapseControls: CollapseControls = useMemo(
+    () => ({
+      ...viewCollapse,
+      toggle: (kind, id) => {
+        if (!viewCollapse.isCollapsed(kind, id)) reveal.conceal(id);
+        return viewCollapse.toggle(kind, id);
+      },
+      setCollapsed: (kind, ids, value) => {
+        if (value) for (const id of ids) reveal.conceal(id);
+        return viewCollapse.setCollapsed(kind, ids, value);
+      },
+    }),
+    [viewCollapse, reveal],
+  );
+  const { isCollapsed, toggle, pinnedCollapsed, togglePinned } = collapseControls;
   /** Status or label sections; matches nothing in project grouping. */
   const sectionGroups = useWorkspaces({
     where: grouping === "project" ? matchNone : where,
@@ -839,6 +910,8 @@ export function SidebarPlusView({ active, navigation, theme }: PluginSidebarView
   });
   const pressProps = dragPressProps(drag);
   const activeKey = active.workspace?.key ?? null;
+  /** The open workspace always shows, even past a section's cap. */
+  const alwaysVisible = useMemo(() => new Set(activeKey ? [activeKey] : []), [activeKey]);
   /**
    * Where a workspace's row renders (the first label section in label grouping); null when it is not listed.
    * Used for the open workspace and for the latest one.
@@ -958,12 +1031,19 @@ export function SidebarPlusView({ active, navigation, theme }: PluginSidebarView
         lineHeight={metrics.primaryLineHeight}
       />
     );
+    const capped = capSectionItems(project.items, (reference) => reference.key, {
+      ...capLimits,
+      activity,
+      alwaysVisible,
+      revealed: reveal.has(key),
+    });
     const body = collapsed ? null : project.items.length === 0 ? (
       projectRef ? (
         <NewWorkspaceRow onPress={() => navigation.openProject(projectRef)} theme={theme} metrics={metrics} />
       ) : null
     ) : (
-      project.items.map((reference) => {
+      <>
+        {capped.visible.map((reference) => {
           const row = (
             <WorkspaceRow
               key={reference.key}
@@ -995,7 +1075,11 @@ export function SidebarPlusView({ active, navigation, theme }: PluginSidebarView
               </DragHandle>
             </DragBlock>
           );
-        })
+        })}
+        {capped.hidden > 0 ? (
+          <ShowMoreRow count={capped.hidden} onPress={() => reveal.revealSection(key)} theme={theme} metrics={metrics} />
+        ) : null}
+      </>
     );
     const sticky = stickyStyle(groupId ? groupHeadingHeight : 0, surface, STICKY_PROJECT_Z);
     return (
@@ -1150,7 +1234,10 @@ export function SidebarPlusView({ active, navigation, theme }: PluginSidebarView
           search={<SearchBox value={query} onChange={setQuery} theme={theme} />}
           rightInset={scrollbarGutter}
           collapseByDefault={collapse.collapsedByDefault}
-          onCollapseByDefaultChange={(value) => void collapse.setDefaultCollapsed(value)}
+          onCollapseByDefaultChange={(value) => {
+            reveal.resetAll();
+            void collapse.setDefaultCollapsed(value);
+          }}
         />
         <View ref={viewportRef} collapsable={false} style={{ flex: 1 }}>
           <ScrollView
@@ -1255,6 +1342,12 @@ export function SidebarPlusView({ active, navigation, theme }: PluginSidebarView
             {sections}
             {flatSections.map((section) => {
               const collapsed = isCollapsed("sections", section.key);
+              const capped = capSectionItems(section.items, (reference) => reference.key, {
+                ...capLimits,
+                activity,
+                alwaysVisible,
+                revealed: reveal.has(section.key),
+              });
               return (
                 <View key={section.key}>
                   <View style={stickyStyle(0, surface, STICKY_SECTION_Z)}>
@@ -1269,9 +1362,9 @@ export function SidebarPlusView({ active, navigation, theme }: PluginSidebarView
                       lineHeight={metrics.primaryLineHeight}
                     />
                   </View>
-                  {collapsed
-                    ? null
-                    : section.items.map((reference) =>
+                  {collapsed ? null : (
+                    <>
+                      {capped.visible.map((reference) =>
                         trackRow(
                           <WorkspaceRow
                             key={reference.key}
@@ -1295,6 +1388,16 @@ export function SidebarPlusView({ active, navigation, theme }: PluginSidebarView
                           },
                         ),
                       )}
+                      {capped.hidden > 0 ? (
+                        <ShowMoreRow
+                          count={capped.hidden}
+                          onPress={() => reveal.revealSection(section.key)}
+                          theme={theme}
+                          metrics={metrics}
+                        />
+                      ) : null}
+                    </>
+                  )}
                 </View>
               );
             })}
@@ -1369,7 +1472,7 @@ export function SidebarPlusView({ active, navigation, theme }: PluginSidebarView
           parent={menuGroupParent}
           subgroupCount={menuGroup && !menuGroupParent ? subgroupsOf(groupsDoc, menuGroup.id).length : 0}
           projectKeys={menuGroupProjects}
-          collapse={viewCollapse}
+          collapse={collapseControls}
           onEdit={(group) => {
             setGroupMenuId(null);
             setEditing(group);

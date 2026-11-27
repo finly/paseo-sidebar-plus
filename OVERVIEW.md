@@ -14,6 +14,7 @@ Sidebar+ is a sidebar view where you create groups for your projects, or group w
 - **Collapse:** collapsed groups and projects show a count, plus a status dot when work needs attention or is running.
 - **Group by:** project, status, or label.
 - **Sort:** by name, last activity, or creation date, or drag workspaces into a manual order.
+- **Caps:** show the newest few workspaces per project or label section, and hide ones untouched for a set number of days. The rest sit behind a Show more row, the header count stays the full one, the open workspace always shows, and searching or filtering ignores the caps.
 
 ## Workspace rows
 
