@@ -1,7 +1,7 @@
 import type { PluginWorkspaceSnapshot, WorkspaceIndicator } from "@getpaseo/plugin";
 import type { PluginSidebarViewProps } from "@getpaseo/plugin/client";
 import { type WorkspaceRef, useHosts, useProjects, useWorkspaces } from "@getpaseo/plugin/client";
-import { type ReactNode, useMemo, useState } from "react";
+import { type ReactNode, useCallback, useMemo, useState } from "react";
 import { Icon } from "@getpaseo/plugin/client/ui";
 import { Platform, Pressable, ScrollView, Text, View } from "react-native";
 import { type DisplaySettings, LIST_INSET, type SortOrder, densityMetrics, displaySettings } from "../shared/display-settings";
@@ -23,12 +23,13 @@ import {
   subgroupsOf,
   topGroupOfProject,
   topLevelGroups,
+  translateKeys,
 } from "../shared/groups";
 import { useCollapse, useViewCollapse } from "./collapse";
 import { CountChip, CountColumn } from "./count-chip";
 import { DragBlock, DragHandle, type DragItem, type DropTarget, DropIndicator, dragPressProps, useDragController } from "./drag";
 import { useDisplaySettings } from "./display-settings";
-import type { Appearance } from "../shared/appearance";
+import { type Appearance, isEmptyAppearance } from "../shared/appearance";
 import { useAppearance } from "./appearance";
 import {
   AppearanceEditorModal,
@@ -39,6 +40,7 @@ import {
   hostColorValue,
 } from "./group-editor";
 import { type MessageKey, useT } from "./i18n";
+import { HostTag } from "./host-tag";
 import { useGroups } from "./groups";
 import { GroupMenuModal } from "./group-menu";
 import { MoveGroupModal, MoveProjectModal, type ProjectTarget } from "./move-project";
@@ -51,7 +53,7 @@ import { UrgentDot, mostUrgent, useWorkspaceIndicators } from "./urgent-status";
 import { indicatorColor } from "./status-indicator";
 import { type FilterOptions, ViewOptionsHeader } from "./view-options";
 import { WorkspaceActionsModal } from "./workspace-actions";
-import { WorkspaceDescriptorFeed } from "./workspace-descriptors";
+import { useAllDescriptors, WorkspaceDescriptorFeed } from "./workspace-descriptors";
 import { WorkspaceRow } from "./workspace-row";
 import { SearchBox } from "./search-box";
 import { JumpToActiveButton, useJumpToActive } from "./jump-to-active";
@@ -114,10 +116,6 @@ const byLabelSection = (workspace: Snapshot) => {
   return [...sections].map(([key, title]) => ({ key: `label:${key}`, title }));
 };
 
-const groupByProject = (workspace: Snapshot) => ({
-  key: workspace.project.key,
-  title: workspace.projectDisplayName,
-});
 const hideBackground = (workspace: Snapshot) => !workspace.background;
 const matchNone = () => false;
 const byLabel = (workspace: Snapshot) => workspace.labels;
@@ -280,37 +278,7 @@ function ProjectHeader({
         {title}
       </Text>
       {hostTag ? (
-        <View
-          style={{
-            flexShrink: 1,
-            maxWidth: "45%",
-            flexDirection: "row",
-            alignItems: "center",
-            gap: 3,
-            paddingHorizontal: 5,
-            borderRadius: 4,
-            overflow: "hidden",
-          }}
-        >
-          {/* Faded fill: the host color at low opacity, behind the content. */}
-          {hostFill ? (
-            <View
-              style={{
-                position: "absolute",
-                top: 0,
-                right: 0,
-                bottom: 0,
-                left: 0,
-                backgroundColor: hostColor,
-                opacity: 0.15,
-              }}
-            />
-          ) : null}
-          <Icon name="Server" color={hostColor} size={fontSize - 3} />
-          <Text numberOfLines={1} style={{ flexShrink: 1, color: hostColor, fontSize: fontSize - 2, lineHeight }}>
-            {hostTag}
-          </Text>
-        </View>
+        <HostTag name={hostTag} color={hostColor} fill={hostFill} fontSize={fontSize} lineHeight={lineHeight} />
       ) : null}
       {collapsed ? <UrgentDot indicator={status} theme={theme} /> : null}
       <CountChip count={count} theme={theme} />
@@ -558,8 +526,39 @@ export function SidebarPlusView({ active, navigation, theme }: PluginSidebarView
   const t = useT();
   const { state, filters: storedFilters, clearFilters } = useDisplaySettings();
   const settings = state.status === "ready" ? state.values : DEFAULT_SETTINGS;
-  const { groups: groupsDoc, moveProject, reorderGroup, setProjectOrder: setProjectsOrder } = useGroups();
-  const collapse = useCollapse();
+  /**
+   * Paseo joins the same project across hosts with a shared `project.projectKey` carried on the full
+   * workspace descriptor (not on the plugin snapshot). Map the host-qualified project ref keys used
+   * by saved settings to that shared key, falling back to the ref key before descriptors arrive.
+   */
+  const descriptors = useAllDescriptors();
+  const identityByProjectKey = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const { hostId, descriptor } of descriptors) {
+      const shared = descriptor.project?.projectKey;
+      if (!shared) continue;
+      map.set(JSON.stringify([hostId, descriptor.projectId]), shared);
+    }
+    return map;
+  }, [descriptors]);
+  const identityOfKey = useCallback((key: string) => identityByProjectKey.get(key) ?? key, [identityByProjectKey]);
+  const identityOf = useCallback((workspace: Snapshot) => identityOfKey(workspace.project.key), [identityOfKey]);
+  /** Every host-qualified key that maps to a shared project key, for reading settings saved before the switch. */
+  const aliasesByIdentity = useMemo(() => {
+    const map = new Map<string, string[]>();
+    for (const [legacy, identity] of identityByProjectKey) {
+      const aliases = map.get(identity) ?? [];
+      aliases.push(legacy);
+      map.set(identity, aliases);
+    }
+    return map;
+  }, [identityByProjectKey]);
+  const groupByProject = useCallback(
+    (workspace: Snapshot) => ({ key: identityOf(workspace), title: workspace.projectDisplayName }),
+    [identityOf],
+  );
+  const { groups: groupsDoc, moveProject, reorderGroup, setProjectOrder: setProjectsOrder } = useGroups(identityOfKey);
+  const collapse = useCollapse(identityOfKey);
   /** Search query, kept in memory only (not saved). */
   const [query, setQuery] = useState("");
   const search = normalizeQuery(query);
@@ -611,13 +610,16 @@ export function SidebarPlusView({ active, navigation, theme }: PluginSidebarView
       .map((project) => ({ key: String(project.key), title: project.title ?? String(project.key), hostId: project.items[0]?.hostId ?? "" }))
       .filter((project) => activeHosts.length === 0 || activeHosts.includes(project.hostId))
       .sort((a, b) => a.title.localeCompare(b.title));
-    const filters: Filters = resolveFilters(storedFilters, {
-      hosts: hostIds,
-      projects: new Set(projectOptions.map((project) => project.key)),
-      labels: new Set(labelOptions.map((label) => label.key)),
-    });
+    const filters: Filters = resolveFilters(
+      { ...storedFilters, projects: translateKeys(storedFilters.projects, identityOfKey) },
+      {
+        hosts: hostIds,
+        projects: new Set(projectOptions.map((project) => project.key)),
+        labels: new Set(labelOptions.map((label) => label.key)),
+      },
+    );
     return { filters, projectOptions };
-  }, [hosts, storedFilters, unfiltered, labelOptions]);
+  }, [hosts, storedFilters, unfiltered, labelOptions, identityOfKey]);
   const hostLabels = useMemo(() => new Map(hosts.map((host) => [host.serverId, host.label])), [hosts]);
   const filtersActive = hasActiveFilters(filters);
   /** Filters or a search narrow the list. */
@@ -630,10 +632,10 @@ export function SidebarPlusView({ active, navigation, theme }: PluginSidebarView
     () =>
       filtered
         ? (workspace: Snapshot) =>
-            (!filtersActive || matchesFilters(workspace, filters)) &&
+            (!filtersActive || matchesFilters(workspace, filters, identityOf)) &&
             matchesSearch(workspace, search, hostLabels.get(workspace.hostId) ?? workspace.hostId)
         : null,
-    [filtered, filtersActive, filters, search, hostLabels],
+    [filtered, filtersActive, filters, search, hostLabels, identityOf],
   );
   const where = useMemo(
     () => (matches ? (workspace: Snapshot) => (!backgroundWhere || backgroundWhere(workspace)) && matches(workspace) : backgroundWhere),
@@ -660,6 +662,15 @@ export function SidebarPlusView({ active, navigation, theme }: PluginSidebarView
   );
   const manualSort = settings.manualOrder && grouping === "project";
   const { orders: workspaceOrders, setProjectOrder } = useWorkspaceOrder();
+  /** Manual workspace orders keyed by the shared project key; old host-qualified entries still apply. */
+  const ordersByIdentity = useMemo(() => {
+    const next: Record<string, string[]> = {};
+    for (const [key, order] of Object.entries(workspaceOrders)) {
+      const identity = identityOfKey(key);
+      if (!next[identity]) next[identity] = order;
+    }
+    return next;
+  }, [workspaceOrders, identityOfKey]);
   /**
    * As in Paseo's sidebar, pinned workspaces move to the Pinned section and leave their project.
    * The project stays even when all its workspaces are pinned. With "Manual order", each project's
@@ -671,13 +682,13 @@ export function SidebarPlusView({ active, navigation, theme }: PluginSidebarView
     const ordered = sortByProjectOrder(grouped, groupsDoc.projectOrder, (project) => String(project.key));
     if (pinnedKeys.size === 0 && !manualSort) return ordered;
     const all = ordered.map((project) => {
-      const stored = manualSort ? workspaceOrders[String(project.key)] : undefined;
+      const stored = manualSort ? ordersByIdentity[String(project.key)] : undefined;
       const ordered = stored ? applyStoredOrder(project.items, stored, (reference) => reference.key) : project.items;
       const items = pinnedKeys.size > 0 ? ordered.filter((reference) => !pinnedKeys.has(reference.key)) : ordered;
       return items === project.items ? project : { ...project, items: [...items] };
     });
     return searching ? all.filter((project) => project.items.length > 0) : all;
-  }, [grouped, groupsDoc.projectOrder, pinned, manualSort, workspaceOrders, searching]);
+  }, [grouped, groupsDoc.projectOrder, pinned, manualSort, ordersByIdentity, searching]);
   /**
    * As in Paseo, pinned workspaces stay in the Pinned section. Status sections follow Paseo's order;
    * label sections are alphabetical with Unlabelled last. Empty sections are left out.
@@ -714,7 +725,7 @@ export function SidebarPlusView({ active, navigation, theme }: PluginSidebarView
     const project = unfiltered.find((entry) => String(entry.key) === projectKey);
     if (!project) return [];
     const pinnedKeys = new Set(unfilteredPinned.map((reference) => reference.key));
-    const stored = workspaceOrders[projectKey];
+    const stored = ordersByIdentity[projectKey];
     const ordered = stored ? applyStoredOrder(project.items, stored, (reference) => reference.key) : project.items;
     return ordered.map((reference) => reference.key).filter((key) => !pinnedKeys.has(key));
   };
@@ -745,9 +756,15 @@ export function SidebarPlusView({ active, navigation, theme }: PluginSidebarView
   /** Displayed projects of a top-level group, its subgroups included. */
   const allMembersOf = (groupId: string) =>
     projects.filter((project) => topGroupOfProject(groupsDoc, String(project.key))?.id === groupId);
-  /** Project keys are host-qualified, so every workspace in a project shares one host. */
+  /** First workspace's host is the canonical host of a (possibly merged) project heading. */
   const projectHost = (project: (typeof projects)[number]) => project.items[0]?.hostId ?? "";
-  const multiHost = settings.showHosts && new Set(projects.map(projectHost)).size > 1;
+  /** A project can now span hosts, so host tags belong on rows whenever workspaces span hosts. */
+  const multiHost = (() => {
+    if (!settings.showHosts) return false;
+    const ids = new Set(unfiltered.flatMap((group) => group.items.map((item) => item.hostId)));
+    for (const reference of unfilteredPinned) ids.add(reference.hostId);
+    return ids.size > 1;
+  })();
   const ungrouped =
     grouping === "project" ? projects.filter((project) => !groupOfProject(groupsDoc, String(project.key))) : [];
   /** With several hosts, ungrouped projects cluster by host in configured order (unknown hosts last); sort is stable. */
@@ -879,15 +896,40 @@ export function SidebarPlusView({ active, navigation, theme }: PluginSidebarView
     );
   const allProjects = useProjects();
   /** Workspace groups are keyed by the project ref key. */
-  const projectRefs = useMemo(() => new Map(allProjects.map((reference) => [reference.key, reference])), [allProjects]);
+  /** One host's project ref is enough to start a workspace or open the project menu for the merged heading. */
+  const projectRefs = useMemo(() => {
+    const map = new Map<string, (typeof allProjects)[number]>();
+    for (const reference of allProjects) {
+      const key = identityOfKey(reference.key);
+      if (!map.has(key) || reference.hostId === active.workspace?.hostId) map.set(key, reference);
+    }
+    return map;
+  }, [allProjects, identityOfKey, active.workspace?.hostId]);
+  /** Reads a shared project's appearance, falling back to settings saved under a host-qualified key. */
+  const appearanceOf = useCallback(
+    (key: string): Appearance => {
+      const own = projectAppearance(key);
+      if (!isEmptyAppearance(own)) return own;
+      for (const alias of aliasesByIdentity.get(key) ?? []) {
+        const candidate = projectAppearance(alias);
+        if (!isEmptyAppearance(candidate)) return candidate;
+      }
+      return own;
+    },
+    [projectAppearance, aliasesByIdentity],
+  );
   const metrics = useMemo(() => densityMetrics(settings), [settings]);
   const hostLabel = (hostId: string) => hostLabels.get(hostId) ?? hostId;
-  const renderProject = (
-    project: (typeof projects)[number],
-    index: number,
-    groupId: string | null,
-    showHost = false,
-  ) => {
+  const hostBadge = (reference: WorkspaceRef) => {
+    if (!multiHost) return {};
+    const color = settings.hostColors[reference.hostId] ?? "accent";
+    return {
+      hostTag: hostLabel(reference.hostId),
+      hostColor: hostColorValue(color, theme),
+      hostFill: color !== "none",
+    };
+  };
+  const renderProject = (project: (typeof projects)[number], index: number, groupId: string | null) => {
     const key = String(project.key);
     const title = project.title ?? key;
     const collapsed = isCollapsed("projects", key);
@@ -897,10 +939,10 @@ export function SidebarPlusView({ active, navigation, theme }: PluginSidebarView
     const header = (
       <ProjectHeader
         title={title}
-        appearance={projectAppearance(key)}
-        hostTag={showHost ? hostLabel(projectHost(project)) : null}
-        hostColor={hostColorValue(settings.hostColors[projectHost(project)] ?? "accent", theme)}
-        hostFill={(settings.hostColors[projectHost(project)] ?? "accent") !== "none"}
+        appearance={appearanceOf(key)}
+        hostTag={null}
+        hostColor={hostColorValue("accent", theme)}
+        hostFill={false}
         collapsed={collapsed}
         count={project.items.length}
         status={collapsed ? mostUrgent(project.items, indicators) : null}
@@ -928,6 +970,7 @@ export function SidebarPlusView({ active, navigation, theme }: PluginSidebarView
               navigation={navigation}
               theme={theme}
               settings={settings}
+              {...hostBadge(reference)}
               pressProps={rowDrag ? pressProps : undefined}
               onMenu={setMenuFor}
             />
@@ -951,7 +994,9 @@ export function SidebarPlusView({ active, navigation, theme }: PluginSidebarView
           );
         })
     );
-    const sticky = stickyStyle(groupId ? groupHeadingHeight : 0, surface, STICKY_PROJECT_Z);
+    // Stuck headings sit at a different screen position than their measured layout slot, so drop
+    // targets under them would be off. A drag turns sticking off for the whole list.
+    const sticky = drag.dragging ? undefined : stickyStyle(groupId ? groupHeadingHeight : 0, surface, STICKY_PROJECT_Z);
     return (
       <DragBlock
         key={project.key}
@@ -1032,7 +1077,7 @@ export function SidebarPlusView({ active, navigation, theme }: PluginSidebarView
         </DragHandle>
         {collapsed ? null : members.length > 0 ? (
           <View onLayout={drag.onSubgroupBodyLayout(subgroup.id)} style={{ paddingLeft: nestIndent }}>
-            {members.map((project, memberIndex) => renderProject(project, memberIndex, subgroup.id, multiHost))}
+            {members.map((project, memberIndex) => renderProject(project, memberIndex, subgroup.id))}
           </View>
         ) : (
           emptyGroup
@@ -1059,7 +1104,7 @@ export function SidebarPlusView({ active, navigation, theme }: PluginSidebarView
         <DragHandle
           drag={drag}
           item={item}
-          style={drag.isDragging(item) ? undefined : stickyStyle(0, surface, STICKY_SECTION_Z)}
+          style={drag.dragging ? undefined : stickyStyle(0, surface, STICKY_SECTION_Z)}
           onLayout={(event) => setGroupHeadingHeight(event.nativeEvent.layout.height)}
         >
           <GroupHeader
@@ -1079,7 +1124,7 @@ export function SidebarPlusView({ active, navigation, theme }: PluginSidebarView
           // Shift nested subgroups and projects so their chevron lines up with the group icon.
           <View onLayout={drag.onGroupBodyLayout(group.id)} style={{ paddingLeft: nestIndent }}>
             {subgroups.map((subgroup, index) => renderSubgroup(subgroup, group.id, index))}
-            {members.map((project, index) => renderProject(project, subgroups.length + index, group.id, multiHost))}
+            {members.map((project, index) => renderProject(project, subgroups.length + index, group.id))}
           </View>
         ) : (
           emptyGroup
@@ -1146,7 +1191,7 @@ export function SidebarPlusView({ active, navigation, theme }: PluginSidebarView
                 onLayout={drag.onPinnedSectionLayout}
                 style={drag.dragging?.kind === "pinned" ? { paddingBottom: 4, zIndex: 10 } : { paddingBottom: 4 }}
               >
-                <View style={stickyStyle(0, surface, STICKY_SECTION_Z)}>
+                <View style={drag.dragging ? undefined : stickyStyle(0, surface, STICKY_SECTION_Z)}>
                   <PinnedHeader
                     appearance={pinnedAppearance}
                     collapsed={pinnedCollapsed}
@@ -1180,6 +1225,7 @@ export function SidebarPlusView({ active, navigation, theme }: PluginSidebarView
                                   theme={theme}
                                   settings={settings}
                                   pinned
+                                  {...hostBadge(reference)}
                                   // Lines up with the chevrons of projects nested under a group.
                                   indent={HEADING_INSET + nestIndent}
                                   pressProps={pressProps}
@@ -1202,7 +1248,7 @@ export function SidebarPlusView({ active, navigation, theme }: PluginSidebarView
               const collapsed = isCollapsed("sections", section.key);
               return (
                 <View key={section.key}>
-                  <View style={stickyStyle(0, surface, STICKY_SECTION_Z)}>
+                  <View style={drag.dragging ? undefined : stickyStyle(0, surface, STICKY_SECTION_Z)}>
                     <SectionHeader
                       title={section.title}
                       indicator={section.indicator}
@@ -1225,6 +1271,7 @@ export function SidebarPlusView({ active, navigation, theme }: PluginSidebarView
                             navigation={navigation}
                             theme={theme}
                             settings={settings}
+                            {...hostBadge(reference)}
                             onMenu={setMenuFor}
                           />,
                           reference.key,
@@ -1237,7 +1284,7 @@ export function SidebarPlusView({ active, navigation, theme }: PluginSidebarView
               );
             })}
             <View onLayout={drag.onUngroupedLayout} style={drag.containsDragged(null) ? { zIndex: 10 } : undefined}>
-              {ungrouped.map((project, index) => renderProject(project, index, null, multiHost))}
+              {ungrouped.map((project, index) => renderProject(project, index, null))}
               {drag.dragging?.kind === "project" && drag.dragging.groupId !== null && ungrouped.length === 0 ? (
                 // Drop zone for ungrouping when no project is ungrouped yet.
                 <View
@@ -1321,6 +1368,7 @@ export function SidebarPlusView({ active, navigation, theme }: PluginSidebarView
         />
         <MoveProjectModal
           project={moving}
+          currentGroupId={moving ? (groupOfProject(groupsDoc, moving.key)?.id ?? null) : null}
           onBack={(target) => {
             setMoving(null);
             setProjectMenu({ ...target, ref: projectRefs.get(target.key) ?? null });

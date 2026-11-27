@@ -12,8 +12,10 @@ Sidebar+ is a sidebar view where you create groups for your projects, or group w
 - **Groups and subgroups:** put projects in groups, one subgroup level deep, each with a color and an icon or emoji.
 - **Drag to arrange:** reorder groups, subgroups, projects, and Pinned workspaces, or drag a project into another group. On touch, long-press first.
 - **Collapse:** collapsed groups and projects show a count, plus a status dot when work needs attention or is running.
-- **Group by:** project, status, or label.
+- **Group by:** project, status, or label. The same project on several hosts shares one heading.
 - **Sort:** by name, last activity, or creation date, or drag workspaces into a manual order.
+
+With projects on several hosts, each workspace row carries a host tag when that option is on.
 
 ## Workspace rows
 

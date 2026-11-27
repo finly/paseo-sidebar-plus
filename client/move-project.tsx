@@ -106,12 +106,15 @@ function GroupChoice({
 /** Move a project into a group or back to ungrouped. Picking an option saves and closes. */
 export function MoveProjectModal({
   project,
+  currentGroupId,
   onBack,
   onClose,
   onNewGroup,
   theme,
 }: {
   project: ProjectTarget | null;
+  /** Current group of the shared project, when the caller has already translated saved keys. */
+  currentGroupId?: string | null;
   /** Shows a back button in the title that returns to the project menu. */
   onBack?(project: ProjectTarget): void;
   onClose(): void;
@@ -123,7 +126,11 @@ export function MoveProjectModal({
   const [busy, setBusy] = useState(false);
   useEffect(() => setBusy(false), [project]);
 
-  const current = project ? (groupOfProject(groups, project.key)?.id ?? null) : null;
+  const current = project
+    ? currentGroupId !== undefined
+      ? currentGroupId
+      : (groupOfProject(groups, project.key)?.id ?? null)
+    : null;
   const disabled = state.status !== "ready" || busy;
   const choose = async (groupId: string | null) => {
     if (!project) return;

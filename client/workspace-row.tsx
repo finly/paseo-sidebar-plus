@@ -5,6 +5,7 @@ import { Icon } from "@getpaseo/plugin/client/ui";
 import { Fragment, memo, type ReactNode, useMemo, useState } from "react";
 import { ActivityIndicator, Platform, Pressable, Text, View } from "react-native";
 import { type DensityMetrics, type DisplaySettings, LIST_INSET, ROW_FIELDS, type RowField, densityMetrics, fieldsOnLine } from "../shared/display-settings";
+import { HostTag } from "./host-tag";
 import { useT } from "./i18n";
 import { useLabelFieldValues } from "./label-fields";
 import { usePullRequestFieldValues } from "./pull-request-fields";
@@ -118,6 +119,9 @@ export const WorkspaceRow = memo(function WorkspaceRow({
   settings,
   fieldValues = EMPTY_VALUES,
   pinned = false,
+  hostTag = null,
+  hostColor,
+  hostFill = false,
   indent,
   pressProps,
   onMenu,
@@ -131,6 +135,11 @@ export const WorkspaceRow = memo(function WorkspaceRow({
   fieldValues?: RowFieldValues;
   /** In the Pinned section: no project heading above, so the row sits flush and names its project. */
   pinned?: boolean;
+  /** Host badge when one project spans several hosts; replaces the old per-heading host tag. */
+  hostTag?: string | null;
+  /** Host badge text and faded fill color. */
+  hostColor?: string;
+  hostFill?: boolean;
   /** Left padding; defaults to the indentation setting, or the row padding when pinned. */
   indent?: number;
   /** Long-press handling for the row (drag arming on touch). */
@@ -223,6 +232,16 @@ export const WorkspaceRow = memo(function WorkspaceRow({
         >
           {workspace.label}
         </Text>
+        {hostTag ? (
+          <HostTag
+            name={hostTag}
+            color={hostColor ?? theme.colors.foregroundMuted}
+            fill={hostFill}
+            fontSize={metrics.primaryFontSize}
+            lineHeight={metrics.primaryLineHeight}
+            maxWidth={96}
+          />
+        ) : null}
         {archiving ? (
           <Text
             style={{

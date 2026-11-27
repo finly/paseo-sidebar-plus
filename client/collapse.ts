@@ -1,11 +1,20 @@
 import { useSettings } from "@getpaseo/plugin/client";
 import { useCallback, useMemo, useState } from "react";
 import { type CollapseKind, EMPTY_COLLAPSE, collapseSettings } from "../shared/collapse";
+import { translateKeys } from "../shared/groups";
 
-/** Device-scoped collapsed groups, projects, status and label sections, and Pinned section, with lookups and toggles. */
-export function useCollapse() {
+/**
+ * Device-scoped collapsed groups, projects, status and label sections, and Pinned section, with lookups and toggles.
+ * `resolveProjectKey` keeps collapse state saved under a host-qualified project key working after
+ * projects from several hosts are shown under one shared key.
+ */
+export function useCollapse(resolveProjectKey: (key: string) => string = (key) => key) {
   const state = useSettings(collapseSettings);
-  const values = state.status === "ready" ? state.values : EMPTY_COLLAPSE;
+  const stored = state.status === "ready" ? state.values : EMPTY_COLLAPSE;
+  const values = useMemo(
+    () => ({ ...stored, projects: translateKeys(stored.projects, resolveProjectKey) }),
+    [stored, resolveProjectKey],
+  );
   const collapsed = useMemo(
     () => ({ groups: new Set(values.groups), projects: new Set(values.projects), sections: new Set(values.sections) }),
     [values],

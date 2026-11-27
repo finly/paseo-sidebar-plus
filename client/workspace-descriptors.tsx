@@ -10,6 +10,11 @@ type PaseoWorkspaceUpdate = Parameters<Parameters<PaseoWorkspaceHandle["subscrib
 
 /** Full daemon descriptor: pull request, checks, services, forge. Not part of the plugin snapshot. */
 export type WorkspaceDescriptor = PaseoWorkspace;
+/** A descriptor together with the host it came from; descriptors themselves are host-agnostic. */
+export interface DescriptorEntry {
+  readonly hostId: string;
+  readonly descriptor: WorkspaceDescriptor;
+}
 
 export function descriptorKey(hostId: string, workspaceId: string): string {
   return `${hostId}\u0000${workspaceId}`;
@@ -17,14 +22,21 @@ export function descriptorKey(hostId: string, workspaceId: string): string {
 
 /** Live descriptors keyed by `descriptorKey(hostId, workspaceId)`. Each upsert replaces the entry object. */
 class DescriptorStore {
-  private readonly entries = new Map<string, WorkspaceDescriptor>();
+  private readonly entries = new Map<string, DescriptorEntry>();
   private readonly hostKeys = new Map<string, Set<string>>();
   private readonly listeners = new Set<() => void>();
   /** Bumped on every change, so readers of many entries can tell when to re-read. */
   version = 0;
+  /** Changes only when a descriptor supplies or changes a shared project key. */
+  identitySignature = "";
 
   get(key: string): WorkspaceDescriptor | null {
-    return this.entries.get(key) ?? null;
+    return this.entries.get(key)?.descriptor ?? null;
+  }
+
+  /** All live entries, so callers can derive project-wide facts (Paseo's shared project key). */
+  all(): readonly DescriptorEntry[] {
+    return [...this.entries.values()];
   }
 
   subscribe = (listener: () => void): (() => void) => {
@@ -38,7 +50,7 @@ class DescriptorStore {
     for (const workspace of workspaces) {
       const key = descriptorKey(hostId, workspace.id);
       keys.add(key);
-      this.entries.set(key, workspace);
+      this.entries.set(key, { hostId, descriptor: workspace });
     }
     this.hostKeys.set(hostId, keys);
     this.emit();
@@ -50,7 +62,7 @@ class DescriptorStore {
     if (update.kind === "upsert") {
       const key = descriptorKey(hostId, update.workspace.id);
       keys.add(key);
-      this.entries.set(key, update.workspace);
+      this.entries.set(key, { hostId, descriptor: update.workspace });
     } else {
       const key = descriptorKey(hostId, update.id);
       keys.delete(key);
@@ -72,6 +84,13 @@ class DescriptorStore {
 
   private emit(): void {
     this.version += 1;
+    const identities: string[] = [];
+    for (const [key, entry] of this.entries) {
+      const shared = entry.descriptor.project?.projectKey;
+      if (shared) identities.push(`${key}:${shared}`);
+    }
+    identities.sort();
+    this.identitySignature = identities.join("\n");
     for (const listener of this.listeners) listener();
   }
 }
@@ -142,6 +161,20 @@ export function useWorkspaceDescriptor(reference: WorkspaceRef): WorkspaceDescri
 }
 
 const NO_VERSION = () => 0;
+const NO_VERSION_STRING = () => "";
+
+/** Live descriptor entries from every online host, re-read only when project identities change. */
+export function useAllDescriptors(): readonly DescriptorEntry[] {
+  const store = useContext(DescriptorContext);
+  // Only project identities matter to grouping; status churn on a descriptor must not re-render the view.
+  const signature = useSyncExternalStore(
+    store?.subscribe ?? NO_STORE_SUBSCRIBE,
+    store ? () => store.identitySignature : NO_VERSION_STRING,
+    store ? () => store.identitySignature : NO_VERSION_STRING,
+  );
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  return useMemo(() => store?.all() ?? [], [store, signature]);
+}
 
 /** Reads any workspace's live descriptor by `descriptorKey`; the function changes identity whenever a descriptor changes. */
 export function useDescriptorLookup(): (key: string) => WorkspaceDescriptor | null {

@@ -94,8 +94,9 @@ You can switch back to the default sidebar in that same setting.
 
 With projects on several hosts:
 
-- **Ungrouped projects** split by host.
-- **Host tags** on grouped projects, with a color per host.
+- The **same project** on several hosts shares one heading and one group, using Paseo's own project identity.
+- **Ungrouped projects** cluster by host.
+- **Host tags** sit on workspace rows, with a color per host.
 
 ## Your language, your theme
 

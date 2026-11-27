@@ -1,6 +1,13 @@
 import { useSettings } from "@getpaseo/plugin/client";
-import { useCallback } from "react";
-import { EMPTY_GROUPS, type Group, type GroupsDocument, groupsSettings, parentOf } from "../shared/groups";
+import { useCallback, useMemo } from "react";
+import {
+  EMPTY_GROUPS,
+  type Group,
+  type GroupsDocument,
+  groupsSettings,
+  parentOf,
+  translateGroupsDocument,
+} from "../shared/groups";
 
 /** Editable group fields; the id is assigned on create and never changes, the parent changes by moving. */
 export type GroupDraft = Omit<Group, "id" | "parentId">;
@@ -9,10 +16,15 @@ function newGroupId(): string {
   return `g${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`;
 }
 
-/** Host-scoped groups document (shared across devices) plus an atomic updater and group actions. */
-export function useGroups() {
+/**
+ * Host-scoped groups document (shared across devices) plus an atomic updater and group actions.
+ * `resolveProjectKey` lets the view read old host-qualified project keys as the shared key that
+ * joins one project across hosts; writes always use the keys the view passes in.
+ */
+export function useGroups(resolveProjectKey: (key: string) => string = (key) => key) {
   const state = useSettings(groupsSettings);
-  const groups = state.status === "ready" ? state.values : EMPTY_GROUPS;
+  const stored = state.status === "ready" ? state.values : EMPTY_GROUPS;
+  const groups = useMemo(() => translateGroupsDocument(stored, resolveProjectKey), [stored, resolveProjectKey]);
   const update = useCallback(
     (patch: (doc: GroupsDocument) => GroupsDocument): Promise<boolean> => {
       if (state.status !== "ready") return Promise.resolve(false);

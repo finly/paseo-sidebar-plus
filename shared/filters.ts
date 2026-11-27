@@ -56,10 +56,18 @@ export function hasActiveFilters(filters: Filters): boolean {
   return filters.hosts.length > 0 || filters.projects.length > 0 || filters.labels.length > 0;
 }
 
-/** Host, project, and label match; several selected labels include a workspace carrying any of them. */
-export function matchesFilters(workspace: PluginWorkspaceSnapshot, filters: Filters): boolean {
+/**
+ * Host, project, and label match; several selected labels include a workspace carrying any of them.
+ * `projectKey` defaults to the host-qualified ref key; pass Paseo's shared project key so a filter
+ * selects every host's copy of the same project.
+ */
+export function matchesFilters(
+  workspace: PluginWorkspaceSnapshot,
+  filters: Filters,
+  projectKey: (workspace: PluginWorkspaceSnapshot) => string = (item) => item.project.key,
+): boolean {
   if (filters.hosts.length > 0 && !filters.hosts.includes(workspace.hostId)) return false;
-  if (filters.projects.length > 0 && !filters.projects.includes(workspace.project.key)) return false;
+  if (filters.projects.length > 0 && !filters.projects.includes(projectKey(workspace))) return false;
   if (filters.labels.length === 0) return true;
   const keys = new Set(workspace.labels.map(labelKey).filter(Boolean));
   return filters.labels.some((key) => (key === UNLABELLED_KEY ? keys.size === 0 : keys.has(key)));

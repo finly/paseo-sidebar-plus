@@ -90,3 +90,34 @@ export function sortByProjectOrder<T>(items: readonly T[], order: readonly strin
   const at = (item: T) => rank.get(keyOf(item)) ?? Number.MAX_SAFE_INTEGER;
   return [...items].sort((a, b) => at(a) - at(b));
 }
+
+/** `keys` with each key mapped through `resolve`, dropping duplicates but keeping first-seen order. */
+export function translateKeys(keys: readonly string[], resolve: (key: string) => string): string[] {
+  const seen = new Set<string>();
+  const next: string[] = [];
+  for (const key of keys) {
+    const mapped = resolve(key);
+    if (seen.has(mapped)) continue;
+    seen.add(mapped);
+    next.push(mapped);
+  }
+  return next;
+}
+
+/**
+ * Reads a stored groups document through a project-key translation (a host-qualified ref key to
+ * the shared project key Paseo uses to join a project across hosts). Exact keys win over older
+ * keys that translate to them, so data saved with the new key takes precedence while old settings
+ * keep working until they are rewritten.
+ */
+export function translateGroupsDocument(doc: GroupsDocument, resolve: (key: string) => string): GroupsDocument {
+  const membership: Record<string, string> = {};
+  for (const [key, groupId] of Object.entries(doc.membership)) {
+    const mapped = resolve(key);
+    if (mapped !== key && membership[mapped] === undefined) membership[mapped] = groupId;
+  }
+  for (const [key, groupId] of Object.entries(doc.membership)) {
+    if (resolve(key) === key) membership[key] = groupId;
+  }
+  return { ...doc, membership, projectOrder: translateKeys(doc.projectOrder, resolve) };
+}
