@@ -52,6 +52,8 @@ interface Session {
   item: DragItem;
   startScroll: number;
   startPointer: number;
+  /** How far a stuck (sticky) heading sat below its layout slot when the drag started. */
+  stuck: number;
   dy: number;
   target: DropTarget | null;
   timer: ReturnType<typeof setInterval>;
@@ -300,7 +302,7 @@ export function useDragController({
       const s = session.current;
       if (!s) return;
       const delta = layout.scrollY - s.startScroll;
-      translate.setValue(s.dy + delta);
+      translate.setValue(s.stuck + s.dy + delta);
       const next = computeTarget(s.item, s.startPointer + s.dy + delta);
       if (!sameTarget(next, s.target)) {
         s.target = next;
@@ -339,15 +341,23 @@ export function useDragController({
       if (rect && typeof pageY === "number" && Number.isFinite(pageY)) {
         grab = Math.min(Math.max(pageY - rect.top, 0), header);
       }
+      // Web: a stuck group or project heading sits below its layout slot (the top of its block), so the
+      // grab point is measured from where it shows, not from `itemTop`. The drag turns sticking off, so
+      // the lifted block starts shifted by the same amount to stay under the pointer.
+      let stuck = 0;
+      const blockKey = item.kind === "group" ? `group:${item.id}` : item.kind === "project" ? `project:${item.key}` : null;
+      const block = blockKey ? nodes.get(blockKey)?.node.getBoundingClientRect() : undefined;
+      if (rect && block) stuck = Math.max(0, rect.top - block.top);
       session.current = {
         item,
         startScroll: layout.scrollY,
-        startPointer: itemTop(item) + grab,
+        startPointer: itemTop(item) + stuck + grab,
+        stuck,
         dy: 0,
         target: null,
         timer: setInterval(autoScroll, 16),
       };
-      translate.setValue(0);
+      translate.setValue(stuck);
       setTarget(null);
       setDragging(item);
     };
