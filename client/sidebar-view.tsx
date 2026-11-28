@@ -1,7 +1,7 @@
 import type { PluginWorkspaceSnapshot, WorkspaceIndicator } from "@getpaseo/plugin";
 import type { PluginSidebarViewProps } from "@getpaseo/plugin/client";
 import { type WorkspaceRef, useHosts, useProjects, useWorkspaces } from "@getpaseo/plugin/client";
-import { type ReactNode, useMemo, useState } from "react";
+import { type ReactNode, useMemo, useRef, useState } from "react";
 import { Icon } from "@getpaseo/plugin/client/ui";
 import { Platform, Pressable, ScrollView, Text, View } from "react-native";
 import { type DisplaySettings, LIST_INSET, type SortOrder, densityMetrics, displaySettings } from "../shared/display-settings";
@@ -54,12 +54,26 @@ import { WorkspaceActionsModal } from "./workspace-actions";
 import { WorkspaceDescriptorFeed } from "./workspace-descriptors";
 import { WorkspaceRow } from "./workspace-row";
 import { SearchBox } from "./search-box";
-import { JumpToActiveButton, useJumpToActive } from "./jump-to-active";
+import { type JumpTracker, JumpPills, useJumpToRow } from "./jump-to-active";
 import { stickyStyle, useSurfaceBehind } from "./web";
 
 const DEFAULT_SETTINGS: DisplaySettings = displaySettings.schema.parse({});
 
 type Snapshot = PluginWorkspaceSnapshot;
+
+/** Where a workspace's row renders: the Pinned section, a project (inside its groups), or a status/label section. */
+type WorkspaceSpot =
+  | { kind: "pinned" }
+  | { kind: "project"; projectKey: string; groupIds: string[] }
+  | { kind: "section"; sectionKey: string };
+
+/** Collapsed parents hiding a spot's row; the shape `expand` takes. */
+interface CollapsedParents {
+  groups?: string[];
+  projects?: string[];
+  sections?: string[];
+  pinned?: boolean;
+}
 
 function workspaceLabel(workspace: Snapshot): string {
   return workspace.title ?? workspace.name;
@@ -645,6 +659,8 @@ export function SidebarPlusView({ active, navigation, theme }: PluginSidebarView
   );
   const grouped = useWorkspaces({ where, orderBy: SORTERS[settings.sort], groupBy: groupByProject });
   const pinnedByTime = useWorkspaces({ where: pinnedWhere, orderBy: byPinnedAt });
+  /** Visible workspaces by last activity; the first item is the latest one. */
+  const latestOrder = useWorkspaces({ where, orderBy: SORTERS.lastActivity, groupBy: () => "latest" });
   const grouping = settings.grouping;
   /** Status or label sections; matches nothing in project grouping. */
   const sectionGroups = useWorkspaces({
@@ -823,60 +839,88 @@ export function SidebarPlusView({ active, navigation, theme }: PluginSidebarView
   });
   const pressProps = dragPressProps(drag);
   const activeKey = active.workspace?.key ?? null;
-  /** Where the open workspace's row renders (the first label section in label grouping); null when it is not listed. */
-  const activeSpot = useMemo(():
-    | { kind: "pinned" }
-    | { kind: "project"; projectKey: string; groupIds: string[] }
-    | { kind: "section"; sectionKey: string }
-    | null => {
-    if (!activeKey) return null;
-    if (pinned.some((reference) => reference.key === activeKey)) return { kind: "pinned" };
-    if (grouping === "project") {
-      const project = projects.find((entry) => entry.items.some((reference) => reference.key === activeKey));
-      if (!project) return null;
-      const projectKey = String(project.key);
-      // The project's group and, for a subgroup, its parent group.
-      const group = groupOfProject(groupsDoc, projectKey);
-      const parent = group ? parentOf(groupsDoc, group) : null;
-      return { kind: "project", projectKey, groupIds: [group, parent].flatMap((entry) => (entry ? [entry.id] : [])) };
-    }
-    const section = flatSections.find((entry) => entry.items.some((reference) => reference.key === activeKey));
-    return section ? { kind: "section", sectionKey: section.key } : null;
-  }, [activeKey, pinned, grouping, projects, groupsDoc, flatSections]);
-  /** Collapsed parents hiding the open workspace's row. */
-  const activeCollapsed = (() => {
-    if (!activeSpot) return null;
-    if (activeSpot.kind === "pinned") return pinnedCollapsed ? { pinned: true } : null;
-    if (activeSpot.kind === "section")
-      return isCollapsed("sections", activeSpot.sectionKey) ? { sections: [activeSpot.sectionKey] } : null;
-    const groups = activeSpot.groupIds.filter((id) => isCollapsed("groups", id));
-    const projectIds = isCollapsed("projects", activeSpot.projectKey) ? [activeSpot.projectKey] : [];
+  /**
+   * Where a workspace's row renders (the first label section in label grouping); null when it is not listed.
+   * Used for the open workspace and for the latest one.
+   */
+  const spotOf = useMemo(
+    () =>
+      (key: string | null): WorkspaceSpot | null => {
+        if (!key) return null;
+        if (pinned.some((reference) => reference.key === key)) return { kind: "pinned" };
+        if (grouping === "project") {
+          const project = projects.find((entry) => entry.items.some((reference) => reference.key === key));
+          if (!project) return null;
+          const projectKey = String(project.key);
+          // The project's group and, for a subgroup, its parent group.
+          const group = groupOfProject(groupsDoc, projectKey);
+          const parent = group ? parentOf(groupsDoc, group) : null;
+          return { kind: "project", projectKey, groupIds: [group, parent].flatMap((entry) => (entry ? [entry.id] : [])) };
+        }
+        const section = flatSections.find((entry) => entry.items.some((reference) => reference.key === key));
+        return section ? { kind: "section", sectionKey: section.key } : null;
+      },
+    [pinned, grouping, projects, groupsDoc, flatSections],
+  );
+  const activeSpot = spotOf(activeKey);
+  /** The most recently prompted workspace on display. */
+  const latestRef = latestOrder[0]?.items[0] ?? null;
+  const latestKey = latestRef?.key ?? null;
+  const latestSpot = spotOf(latestKey);
+  /** Collapsed parents hiding a spot's row. */
+  const collapsedParents = (spot: WorkspaceSpot | null): CollapsedParents | null => {
+    if (!spot) return null;
+    if (spot.kind === "pinned") return pinnedCollapsed ? { pinned: true } : null;
+    if (spot.kind === "section")
+      return isCollapsed("sections", spot.sectionKey) ? { sections: [spot.sectionKey] } : null;
+    const groups = spot.groupIds.filter((id) => isCollapsed("groups", id));
+    const projectIds = isCollapsed("projects", spot.projectKey) ? [spot.projectKey] : [];
     return groups.length > 0 || projectIds.length > 0 ? { groups, projects: projectIds } : null;
-  })();
-  const jump = useJumpToActive(drag.scrollRef, activeKey);
+  };
+  const activeCollapsed = collapsedParents(activeSpot);
+  const latestCollapsed = collapsedParents(latestSpot);
+  const viewportRef = useRef<View>(null);
+  const jump = useJumpToRow(drag.scrollRef, viewportRef, activeKey);
+  const latestJump = useJumpToRow(drag.scrollRef, viewportRef, latestKey);
   /** Stuck headings take the sidebar's own background so rows scroll out of sight under them. */
-  const surface = useSurfaceBehind(jump.viewportRef, theme);
+  const surface = useSurfaceBehind(viewportRef, theme);
   /** Project headings inside a group stick just below the stuck group heading. */
   const [groupHeadingHeight, setGroupHeadingHeight] = useState(0);
   /** Scroll view and content widths; the difference is the scrollbar gutter (web, when scrollbars take space). */
   const [listWidths, setListWidths] = useState({ view: 0, content: 0 });
   const scrollbarGutter = listWidths.content > 0 ? Math.max(0, listWidths.view - listWidths.content) : 0;
-  const showJump = activeSpot !== null && drag.dragging === null && (activeCollapsed !== null || jump.offscreen !== null);
-  const jumpToActive = () => {
-    if (activeCollapsed) {
-      jump.jump(true);
-      void viewCollapse.expand(activeCollapsed);
-    } else jump.jump(false);
+  const showActiveJump =
+    activeSpot !== null && drag.dragging === null && (activeCollapsed !== null || jump.offscreen !== null);
+  const showLatestJump =
+    latestKey !== null &&
+    latestKey !== activeKey &&
+    latestSpot !== null &&
+    drag.dragging === null &&
+    (latestCollapsed !== null || latestJump.offscreen !== null);
+  const jumpTo = (tracker: JumpTracker, collapsed: CollapsedParents | null) => {
+    if (collapsed) {
+      tracker.jump(true);
+      void viewCollapse.expand(collapsed);
+    } else tracker.jump(false);
   };
-  /** Wraps the open workspace's row at its tracked spot so its position can be measured. */
-  const trackActive = (node: ReactNode, key: string, tracked: boolean) =>
-    tracked ? (
-      <View key={key} ref={jump.rowRef} collapsable={false} onLayout={jump.remeasure}>
-        {node}
-      </View>
-    ) : (
-      node
-    );
+  /** Wraps a tracked workspace row so its position can be measured for a jump. */
+  const trackRow = (node: ReactNode, key: string, tracked: { active: boolean; latest: boolean }) => {
+    if (!tracked.active && !tracked.latest) return node;
+    let content: ReactNode = node;
+    if (tracked.latest)
+      content = (
+        <View ref={latestJump.rowRef} collapsable={false} onLayout={latestJump.remeasure}>
+          {content}
+        </View>
+      );
+    if (tracked.active)
+      content = (
+        <View ref={jump.rowRef} collapsable={false} onLayout={jump.remeasure}>
+          {content}
+        </View>
+      );
+    return <View key={key}>{content}</View>;
+  };
   const allProjects = useProjects();
   /** Workspace groups are keyed by the project ref key. */
   const projectRefs = useMemo(() => new Map(allProjects.map((reference) => [reference.key, reference])), [allProjects]);
@@ -932,9 +976,11 @@ export function SidebarPlusView({ active, navigation, theme }: PluginSidebarView
               onMenu={setMenuFor}
             />
           );
-          const tracked =
-            activeSpot?.kind === "project" && activeSpot.projectKey === key && reference.key === activeKey;
-          if (!rowDrag) return trackActive(row, reference.key, tracked);
+          const tracked = {
+            active: activeSpot?.kind === "project" && activeSpot.projectKey === key && reference.key === activeKey,
+            latest: latestSpot?.kind === "project" && latestSpot.projectKey === key && reference.key === latestKey,
+          };
+          if (!rowDrag) return trackRow(row, reference.key, tracked);
           const rowItem: DragItem = { kind: "workspace", key: reference.key, projectKey: key, groupId };
           return (
             <DragBlock
@@ -945,7 +991,7 @@ export function SidebarPlusView({ active, navigation, theme }: PluginSidebarView
               theme={theme}
             >
               <DragHandle drag={drag} item={rowItem}>
-                {trackActive(row, reference.key, tracked)}
+                {trackRow(row, reference.key, tracked)}
               </DragHandle>
             </DragBlock>
           );
@@ -1103,8 +1149,10 @@ export function SidebarPlusView({ active, navigation, theme }: PluginSidebarView
           onNewGroup={() => newGroup()}
           search={<SearchBox value={query} onChange={setQuery} theme={theme} />}
           rightInset={scrollbarGutter}
+          collapseByDefault={collapse.collapsedByDefault}
+          onCollapseByDefaultChange={(value) => void collapse.setDefaultCollapsed(value)}
         />
-        <View ref={jump.viewportRef} collapsable={false} style={{ flex: 1 }}>
+        <View ref={viewportRef} collapsable={false} style={{ flex: 1 }}>
           <ScrollView
             ref={drag.scrollRef}
             style={{ flex: 1 }}
@@ -1112,17 +1160,21 @@ export function SidebarPlusView({ active, navigation, theme }: PluginSidebarView
             scrollEventThrottle={16}
             onScroll={(event) => {
               drag.onScroll(event);
-              jump.onScroll(event.nativeEvent.contentOffset.y);
+              const offset = event.nativeEvent.contentOffset.y;
+              jump.onScroll(offset);
+              latestJump.onScroll(offset);
             }}
             onLayout={(event) => {
               drag.onViewportLayout(event);
               jump.remeasure();
+              latestJump.remeasure();
               const view = event.nativeEvent.layout.width;
               setListWidths((current) => (current.view === view ? current : { ...current, view }));
             }}
             onContentSizeChange={(width, height) => {
               drag.onContentSizeChange(width, height);
               jump.remeasure();
+              latestJump.remeasure();
             }}
           >
             {/* Measures the content width, which excludes the scrollbar gutter. */}
@@ -1172,7 +1224,7 @@ export function SidebarPlusView({ active, navigation, theme }: PluginSidebarView
                             theme={theme}
                           >
                             <DragHandle drag={drag} item={item}>
-                              {trackActive(
+                              {trackRow(
                                 <WorkspaceRow
                                   reference={reference}
                                   active={active.workspace?.key === reference.key}
@@ -1186,7 +1238,10 @@ export function SidebarPlusView({ active, navigation, theme }: PluginSidebarView
                                   onMenu={setMenuFor}
                                 />,
                                 reference.key,
-                                activeSpot?.kind === "pinned" && reference.key === activeKey,
+                                {
+                                  active: activeSpot?.kind === "pinned" && reference.key === activeKey,
+                                  latest: latestSpot?.kind === "pinned" && reference.key === latestKey,
+                                },
                               )}
                             </DragHandle>
                           </DragBlock>
@@ -1217,7 +1272,7 @@ export function SidebarPlusView({ active, navigation, theme }: PluginSidebarView
                   {collapsed
                     ? null
                     : section.items.map((reference) =>
-                        trackActive(
+                        trackRow(
                           <WorkspaceRow
                             key={reference.key}
                             reference={reference}
@@ -1228,9 +1283,16 @@ export function SidebarPlusView({ active, navigation, theme }: PluginSidebarView
                             onMenu={setMenuFor}
                           />,
                           reference.key,
-                          activeSpot?.kind === "section" &&
-                            activeSpot.sectionKey === section.key &&
-                            reference.key === activeKey,
+                          {
+                            active:
+                              activeSpot?.kind === "section" &&
+                              activeSpot.sectionKey === section.key &&
+                              reference.key === activeKey,
+                            latest:
+                              latestSpot?.kind === "section" &&
+                              latestSpot.sectionKey === section.key &&
+                              reference.key === latestKey,
+                          },
                         ),
                       )}
                 </View>
@@ -1263,10 +1325,32 @@ export function SidebarPlusView({ active, navigation, theme }: PluginSidebarView
             </View>
             <DropIndicator drag={drag} theme={theme} />
           </ScrollView>
-          {showJump ? (
-            <JumpToActiveButton
-              direction={activeCollapsed ? null : jump.offscreen}
-              onPress={jumpToActive}
+          {showActiveJump || showLatestJump ? (
+            <JumpPills
+              actions={[
+                ...(showActiveJump
+                  ? [
+                      {
+                        id: "active",
+                        label: t("jump.label"),
+                        accessibilityLabel: t("jump.a11y"),
+                        direction: activeCollapsed ? null : jump.offscreen,
+                        onPress: () => jumpTo(jump, activeCollapsed),
+                      },
+                    ]
+                  : []),
+                ...(showLatestJump
+                  ? [
+                      {
+                        id: "latest",
+                        label: t("jump.latestLabel"),
+                        accessibilityLabel: t("jump.latestA11y"),
+                        direction: latestCollapsed ? null : latestJump.offscreen,
+                        onPress: () => jumpTo(latestJump, latestCollapsed),
+                      },
+                    ]
+                  : []),
+              ]}
               theme={theme}
               fontSize={metrics.secondaryFontSize}
               lineHeight={metrics.secondaryLineHeight}
