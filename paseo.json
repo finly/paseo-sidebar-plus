@@ -14,13 +14,13 @@
       "instructions": "A few words naming the feature or fix, no leading verb."
     },
     "branchName": {
-      "instructions": "Use <type>/<short-desc> in kebab-case, where type is feat, fix, refactor, docs, or chore. Base new task branches on dev, never on main."
+      "instructions": "Use <type>/<short-desc> in kebab-case, where type is feat, fix, refactor, docs, or chore. Base new task branches on main."
     },
     "commitMessage": {
       "instructions": "Use Conventional Commits with a scope (for example feat(sidebar): ...). Never mention other Paseo plugins."
     },
     "pullRequest": {
-      "instructions": "Target dev, never main. Lead with a one-paragraph summary, then a Test plan section listing typecheck and in-app checks. Never mention other Paseo plugins."
+      "instructions": "Target main. Lead with a one-paragraph summary, then a Test plan section listing typecheck and in-app checks. Never mention other Paseo plugins."
     }
   }
 }
