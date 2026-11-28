@@ -2,21 +2,34 @@ import type { PluginTheme } from "@getpaseo/plugin";
 import { Icon } from "@getpaseo/plugin/client/ui";
 import { type RefObject, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Pressable, type ScrollView, Text, View } from "react-native";
-import { useT } from "./i18n";
 
-/** Where the active row is relative to the viewport; null while it is in view or not measured. */
+/** Where a tracked row is relative to the viewport; null while it is in view or not measured. */
 export type Offscreen = "above" | "below" | null;
 
+/** One row's jump state: its measuring handle, measured position, and scroll action. */
+export interface JumpTracker {
+  readonly rowRef: RefObject<View | null>;
+  readonly offscreen: Offscreen;
+  /** Layout of the tracked row, the viewport, or the content changed. */
+  remeasure(): void;
+  onScroll(y: number): void;
+  /** Scrolls to the row now, or once it mounts when `afterExpand` (its parents are being expanded). */
+  jump(afterExpand: boolean): void;
+}
+
 /**
- * Tracks whether the active workspace row is scrolled out of view, and scrolls it into view (centered).
- * Positions come from `measureInWindow` on the viewport and the row, cached as a content offset so
+ * Tracks whether one workspace row is scrolled out of view, and scrolls it into view (centered).
+ * Positions come from `measureInWindow` on the shared viewport and the row, cached as a content offset so
  * scrolling only does arithmetic; the cache refreshes on row, viewport, and content size changes.
  */
-export function useJumpToActive(scrollRef: RefObject<ScrollView | null>, activeKey: string | null) {
-  const viewportRef = useRef<View>(null);
+export function useJumpToRow(
+  scrollRef: RefObject<ScrollView | null>,
+  viewportRef: RefObject<View | null>,
+  rowKey: string | null,
+) {
   const rowRef = useRef<View>(null);
   const scrollY = useRef(0);
-  /** Active row top in content coordinates, its height, and the viewport height; null until measured. */
+  /** Tracked row top in content coordinates, its height, and the viewport height; null until measured. */
   const cache = useRef<{ top: number; height: number; viewport: number } | null>(null);
   /** Set by a jump that first expands collapsed parents: scroll once the row mounts. */
   const pending = useRef(false);
@@ -58,81 +71,111 @@ export function useJumpToActive(scrollRef: RefObject<ScrollView | null>, activeK
         }
       });
     });
-  }, [evaluate, scrollToRow]);
+  }, [evaluate, scrollToRow, viewportRef]);
 
-  // A new active workspace: drop the old position until its row reports layout.
+  // A new tracked row: drop the old position until its row reports layout.
   useEffect(() => {
     cache.current = null;
     pending.current = false;
     measure();
-  }, [activeKey, measure]);
+  }, [rowKey, measure]);
 
-  return useMemo(
-    () => ({
-      viewportRef,
-      rowRef,
-      offscreen,
-      /** Layout of the active row, the viewport, or the content changed. */
-      remeasure: measure,
-      onScroll(y: number) {
-        scrollY.current = y;
-        evaluate();
-      },
-      /** Scrolls to the row now, or once it mounts when `afterExpand` (its parents are being expanded). */
-      jump(afterExpand: boolean) {
-        pending.current = true;
-        if (!afterExpand) measure();
-      },
-    }),
-    [offscreen, measure, evaluate],
-  );
+  return useMemo((): JumpTracker => ({
+    rowRef,
+    offscreen,
+    remeasure: measure,
+    onScroll(y: number) {
+      scrollY.current = y;
+      evaluate();
+    },
+    jump(afterExpand: boolean) {
+      pending.current = true;
+      if (!afterExpand) measure();
+    },
+  }), [offscreen, measure, evaluate]);
 }
 
-/** Small pill at the bottom of the view that jumps to the open workspace. */
-export function JumpToActiveButton({
-  direction,
-  onPress,
+/** One action in the bottom pill: where to scroll and what to call it. */
+export interface JumpAction {
+  readonly id: string;
+  readonly label: string;
+  readonly accessibilityLabel: string;
+  /** Arrow toward the row; null (row inside a collapsed parent) shows a locate icon. */
+  readonly direction: Offscreen;
+  onPress(): void;
+}
+
+function JumpPill({
+  action,
   theme,
   fontSize,
   lineHeight,
 }: {
-  /** Arrow toward the row; null (row inside a collapsed parent) shows a locate icon. */
-  direction: Offscreen;
-  onPress(): void;
+  action: JumpAction;
   theme: PluginTheme;
   fontSize: number;
   lineHeight: number;
 }) {
-  const t = useT();
   const [hovered, setHovered] = useState(false);
   const color = hovered ? theme.colors.foreground : theme.colors.foregroundMuted;
   return (
-    <View pointerEvents="box-none" style={{ position: "absolute", left: 0, right: 0, bottom: 8, alignItems: "center" }}>
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel={t("jump.a11y")}
-        onPress={onPress}
-        onHoverIn={() => setHovered(true)}
-        onHoverOut={() => setHovered(false)}
-        style={({ pressed }) => ({
-          flexDirection: "row",
-          alignItems: "center",
-          gap: 6,
-          paddingHorizontal: 10,
-          paddingVertical: 4,
-          borderRadius: 999,
-          borderWidth: 1,
-          borderColor: pressed || hovered ? theme.colors.foregroundMuted : theme.colors.border,
-          backgroundColor: theme.colors.surface2,
-        })}
-      >
-        <Icon
-          name={direction === "above" ? "ArrowUp" : direction === "below" ? "ArrowDown" : "LocateFixed"}
-          color={color}
-          size={fontSize}
-        />
-        <Text style={{ color, fontSize, lineHeight }}>{t("jump.label")}</Text>
-      </Pressable>
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={action.accessibilityLabel}
+      onPress={action.onPress}
+      onHoverIn={() => setHovered(true)}
+      onHoverOut={() => setHovered(false)}
+      style={({ pressed }) => ({
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 6,
+        paddingHorizontal: 10,
+        paddingVertical: 4,
+        borderRadius: 999,
+        borderWidth: 1,
+        borderColor: pressed || hovered ? theme.colors.foregroundMuted : theme.colors.border,
+        backgroundColor: theme.colors.surface2,
+      })}
+    >
+      <Icon
+        name={action.direction === "above" ? "ArrowUp" : action.direction === "below" ? "ArrowDown" : "LocateFixed"}
+        color={color}
+        size={fontSize}
+      />
+      <Text style={{ color, fontSize, lineHeight }}>{action.label}</Text>
+    </Pressable>
+  );
+}
+
+/** Pills at the bottom of the view that jump to the open workspace or to the latest one. */
+export function JumpPills({
+  actions,
+  theme,
+  fontSize,
+  lineHeight,
+}: {
+  actions: readonly JumpAction[];
+  theme: PluginTheme;
+  fontSize: number;
+  lineHeight: number;
+}) {
+  if (actions.length === 0) return null;
+  return (
+    <View
+      pointerEvents="box-none"
+      style={{ position: "absolute", left: 0, right: 0, bottom: 8, alignItems: "center", zIndex: 2 }}
+    >
+      <View style={{ flexDirection: "row", gap: 8 }}>
+        {actions.map((action) => (
+          <JumpPill
+            key={action.id}
+            action={action}
+            theme={theme}
+            fontSize={fontSize}
+            lineHeight={lineHeight}
+          />
+        ))}
+      </View>
     </View>
   );
 }
