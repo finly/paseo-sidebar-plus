@@ -192,6 +192,18 @@ export function useDragController({
       return containerTop(groupId) + own;
     };
 
+    /**
+     * Ungrouped drop zone. When no ungrouped project is rendered, the bottom of the last group is
+     * still a valid place to drop a project to ungroup it; a small band there keeps that target
+     * reachable instead of leaving a gap where no drop is detected at all.
+     */
+    const ungroupedBounds = (): Span | null => {
+      if (layout.ungrouped.height > 0) return layout.ungrouped;
+      const ids = live.current.groupIds;
+      const last = ids.length > 0 ? layout.groups.get(ids[ids.length - 1]) : null;
+      return last ? { y: last.y + last.height, height: 64 } : null;
+    };
+
     const itemTop = (item: DragItem): number => {
       if (item.kind === "group") return layout.groups.get(item.id)?.y ?? 0;
       if (item.kind === "subgroup") return subgroupTop(item.id, item.parentId);
@@ -240,16 +252,28 @@ export function useDragController({
         }).length;
         return index === ids.indexOf(item.id) ? null : { kind: "position", index };
       }
-      let destination: string | null | undefined;
+      // Nearest zone wins. Keying only on "pointer inside a group span" leaves dead gaps between
+      // groups, above the first group, and in the ungrouped area, where a drop silently does nothing.
+      const zones: { id: string | null; span: Span }[] = [];
       for (const id of ids) {
         const span = layout.groups.get(id);
-        if (span && pointer >= span.y && pointer < span.y + span.height) destination = id;
+        if (span) zones.push({ id, span });
       }
-      if (destination === undefined) {
-        const last = ids.length > 0 ? layout.groups.get(ids[ids.length - 1]) : undefined;
-        if (!last || pointer >= last.y + last.height) destination = null;
+      const ungrouped = ungroupedBounds();
+      if (ungrouped) zones.push({ id: null, span: ungrouped });
+      if (zones.length === 0) return null;
+      const distance = (span: Span) =>
+        pointer < span.y ? span.y - pointer : pointer > span.y + span.height ? pointer - span.y - span.height : 0;
+      let nearest = zones[0];
+      let nearestDistance = distance(nearest.span);
+      for (const zone of zones) {
+        const candidate = distance(zone.span);
+        if (candidate < nearestDistance) {
+          nearest = zone;
+          nearestDistance = candidate;
+        }
       }
-      if (destination === undefined) return null;
+      let destination: string | null = nearest.id;
       if (destination !== null) {
         // Over one of the group's subgroups (heading or body): that subgroup is the destination.
         const parentId = destination;
@@ -302,14 +326,23 @@ export function useDragController({
       update();
     };
 
-    const start = (item: DragItem) => {
+    const start = (item: DragItem, pageY?: number) => {
       if (session.current) return;
       remeasure();
-      const header = layout.headers.get(itemKey(item)) ?? 24;
+      const key = itemKey(item);
+      const header = layout.headers.get(key) ?? 24;
+      // Where inside the heading the pointer was actually grabbed. Assuming the middle of the
+      // heading offset every drop target by up to half a heading (a whole row on touch), so a drag
+      // that looked centered on a boundary landed on the wrong side of it.
+      let grab = header / 2;
+      const rect = nodes.get(`header:${key}`)?.node.getBoundingClientRect();
+      if (rect && typeof pageY === "number" && Number.isFinite(pageY)) {
+        grab = Math.min(Math.max(pageY - rect.top, 0), header);
+      }
       session.current = {
         item,
         startScroll: layout.scrollY,
-        startPointer: itemTop(item) + header / 2,
+        startPointer: itemTop(item) + grab,
         dy: 0,
         target: null,
         timer: setInterval(autoScroll, 16),
@@ -423,7 +456,7 @@ export function useDragController({
       },
       /** Bounds to highlight for a project drop, in content coordinates. */
       dropBounds(groupId: string | null): Span | null {
-        if (groupId === null) return layout.ungrouped.height > 0 ? layout.ungrouped : null;
+        if (groupId === null) return ungroupedBounds();
         const parentId = live.current.parentOf(groupId);
         if (!parentId) return layout.groups.get(groupId) ?? null;
         const span = layout.subgroups.get(groupId);
@@ -498,7 +531,7 @@ export function DragHandle({
     () =>
       PanResponder.create({
         onMoveShouldSetPanResponderCapture: (_event, gesture) => live.current.drag.canStart(gesture),
-        onPanResponderGrant: () => live.current.drag.start(live.current.item),
+        onPanResponderGrant: (event) => live.current.drag.start(live.current.item, event.nativeEvent.pageY),
         onPanResponderMove: (_event, gesture) => live.current.drag.move(gesture.dy),
         onPanResponderRelease: () => live.current.drag.end(true),
         onPanResponderTerminate: () => live.current.drag.end(false),
