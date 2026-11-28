@@ -16,7 +16,9 @@
     "newGroupEllipsis": "New group…",
     "newWorkspace": "New workspace",
     "ungrouped": "Ungrouped",
-    "unlabelled": "Unlabelled"
+    "unlabelled": "Unlabelled",
+    "showMore_one": "Show {{count}} more",
+    "showMore_other": "Show {{count}} more"
   },
   "search": {
     "placeholder": "Search workspaces",
@@ -242,7 +244,9 @@
     "large": "Large",
     "compact": "Compact",
     "roomy": "Roomy",
-    "collapseByDefault": "Collapse sections by default"
+    "collapseByDefault": "Collapse sections by default",
+    "sectionRows": "Rows per section",
+    "sectionAge": "Hide older than (days)"
   },
   "bulkArchive": {
     "title": "Archive workspaces in {{name}}",

@@ -1,5 +1,5 @@
 import type { PluginTheme } from "@getpaseo/plugin";
-import { Icon, Modal } from "@getpaseo/plugin/client/ui";
+import { Icon, Modal, TextInput } from "@getpaseo/plugin/client/ui";
 import { type ReactNode, useEffect, useRef, useState } from "react";
 import { Animated, Easing, Platform, Pressable, Text, View } from "react-native";
 import {
@@ -253,6 +253,69 @@ function OptionRow({ label, theme, children }: { label: string; theme: PluginThe
       </Text>
       {children}
     </View>
+  );
+}
+
+/** A number option: a small field that commits on blur or Enter and clamps to its bounds. */
+function NumberRow({
+  label,
+  value,
+  min,
+  max,
+  onChange,
+  disabled,
+  theme,
+}: {
+  label: string;
+  value: number;
+  min: number;
+  max: number;
+  onChange(value: number): void;
+  disabled: boolean;
+  theme: PluginTheme;
+}) {
+  const [draft, setDraft] = useState<string | null>(null);
+  const commit = () => {
+    if (draft === null) return;
+    setDraft(null);
+    const parsed = Number.parseInt(draft, 10);
+    if (!Number.isFinite(parsed)) return;
+    const next = Math.min(max, Math.max(min, parsed));
+    if (next !== value) onChange(next);
+  };
+  return (
+    <OptionRow label={label} theme={theme}>
+      <TextInput
+        value={draft ?? String(value)}
+        onFocus={() => setDraft(String(value))}
+        onChangeText={(text) => setDraft(text.replace(/\D/g, "").slice(0, 3))}
+        onBlur={commit}
+        onSubmitEditing={commit}
+        onKeyPress={(event) => {
+          if (event.nativeEvent.key === "Escape") setDraft(null);
+        }}
+        keyboardType="number-pad"
+        accessibilityLabel={label}
+        editable={!disabled}
+        style={{
+          width: 64,
+          height: 28,
+          paddingVertical: 0,
+          paddingHorizontal: 8,
+          textAlign: "right",
+          borderRadius: 6,
+          borderWidth: 1,
+          borderColor: theme.colors.border,
+          backgroundColor: theme.colors.surface1,
+          color: theme.colors.foreground,
+          fontSize: 13,
+          opacity: disabled ? 0.5 : 1,
+          // Web: no focus ring on the input; the border already frames it.
+          outlineWidth: 0,
+          outlineStyle: "none" as "solid",
+        }}
+      />
+    </OptionRow>
   );
 }
 
@@ -933,6 +996,25 @@ export function ViewOptionsHeader({
                   theme={theme}
                 />
               </OptionRow>
+              {/* Section caps: project and label sections only; status sections are already time buckets. */}
+              <NumberRow
+                label={t("options.sectionRows")}
+                value={settings.sectionRowLimit}
+                min={1}
+                max={99}
+                onChange={(value) => void setOption("sectionRowLimit", value)}
+                disabled={disabled || settings.grouping === "status"}
+                theme={theme}
+              />
+              <NumberRow
+                label={t("options.sectionAge")}
+                value={settings.sectionAgeLimitDays}
+                min={0}
+                max={365}
+                onChange={(value) => void setOption("sectionAgeLimitDays", value)}
+                disabled={disabled || settings.grouping === "status"}
+                theme={theme}
+              />
             </View>
           </View>
           <View>
