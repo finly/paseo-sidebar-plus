@@ -997,7 +997,9 @@ export function SidebarPlusView({ active, navigation, theme }: PluginSidebarView
           );
         })
     );
-    const sticky = stickyStyle(groupId ? groupHeadingHeight : 0, surface, STICKY_PROJECT_Z);
+    // Stuck headings sit at a different screen position than their measured layout slot, so drop
+    // targets under them would be off. A drag turns sticking off for the whole list.
+    const sticky = drag.dragging ? undefined : stickyStyle(groupId ? groupHeadingHeight : 0, surface, STICKY_PROJECT_Z);
     return (
       <DragBlock
         key={project.key}
@@ -1105,7 +1107,7 @@ export function SidebarPlusView({ active, navigation, theme }: PluginSidebarView
         <DragHandle
           drag={drag}
           item={item}
-          style={drag.isDragging(item) ? undefined : stickyStyle(0, surface, STICKY_SECTION_Z)}
+          style={drag.dragging ? undefined : stickyStyle(0, surface, STICKY_SECTION_Z)}
           onLayout={(event) => setGroupHeadingHeight(event.nativeEvent.layout.height)}
         >
           <GroupHeader
@@ -1198,7 +1200,7 @@ export function SidebarPlusView({ active, navigation, theme }: PluginSidebarView
                 onLayout={drag.onPinnedSectionLayout}
                 style={drag.dragging?.kind === "pinned" ? { paddingBottom: 4, zIndex: 10 } : { paddingBottom: 4 }}
               >
-                <View style={stickyStyle(0, surface, STICKY_SECTION_Z)}>
+                <View style={drag.dragging ? undefined : stickyStyle(0, surface, STICKY_SECTION_Z)}>
                   <PinnedHeader
                     appearance={pinnedAppearance}
                     collapsed={pinnedCollapsed}
@@ -1257,7 +1259,7 @@ export function SidebarPlusView({ active, navigation, theme }: PluginSidebarView
               const collapsed = isCollapsed("sections", section.key);
               return (
                 <View key={section.key}>
-                  <View style={stickyStyle(0, surface, STICKY_SECTION_Z)}>
+                  <View style={drag.dragging ? undefined : stickyStyle(0, surface, STICKY_SECTION_Z)}>
                     <SectionHeader
                       title={section.title}
                       indicator={section.indicator}
